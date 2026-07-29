@@ -17,6 +17,18 @@ const CHAT_FILE = 'chat-history.txt';
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// Middleware
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(express.static(__dirname)); // <-- ADD THIS LINE HERE
+
+// Setup session handling
+app.use(session({
+  secret: 'my-super-secret-key-123',
+  resave: false,
+  saveUninitialized: false
+}));
+
 // Setup session handling
 app.use(session({
   secret: 'my-super-secret-key-123',
