@@ -2,32 +2,21 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const fs = require('fs');
-const session = require('express-session');//
+const session = require('express-session');
 const bcrypt = require('bcryptjs');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const CSV_FILE = 'contacts.csv';
 const CHAT_FILE = 'chat-history.txt';
 
 // Middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-
-// Middleware
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-app.use(express.static(__dirname)); // <-- ADD THIS LINE HERE
-
-// Setup session handling
-app.use(session({
-  secret: 'my-super-secret-key-123',
-  resave: false,
-  saveUninitialized: false
-}));
+app.use(express.static(__dirname)); // <-- Crucial: Serves your index.html and frontend files
 
 // Setup session handling
 app.use(session({
@@ -145,12 +134,11 @@ app.get('/api/download-excel', (req, res) => {
     }
 });
 
-// Start the server properly with Socket.io support
-// Serve your main HTML file
+// Serve main HTML file explicitly for root route
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server is running! Share this with your office: http://192.168.1.10:${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
