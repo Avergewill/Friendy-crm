@@ -201,23 +201,44 @@
 <!-- Socket.io Frontend Script -->
 <script src="/socket.io/socket.io.js"></script>
 <script>
-    // Login Form Handler
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const user = document.getElementById('username').value;
-        const pass = document.getElementById('password').value;
+  // Login Form Handler connected to your backend server routes
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
 
-        // Set your desired username and password here
-        if (user === 'will' && pass === '1234') {
-            localStorage.setItem('crm_logged_in', 'true');
+    try {
+        const response = await fetch('/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Hide login box and show CRM dashboard
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('dashboardSection').style.display = 'block';
+            
+            // Set active user bar name to who just logged in
+            document.getElementById('activeUser').value = username;
+            localStorage.setItem('crm_active_user', username);
+            localStorage.setItem('crm_logged_in', 'true');
+            
             fetchContacts();
         } else {
             const errorP = document.getElementById('login-error');
+            errorP.innerText = data.message || 'Invalid username or password';
             errorP.style.display = 'block';
         }
-    });
+    } catch (err) {
+        const errorP = document.getElementById('login-error');
+        errorP.innerText = 'Connection error. Please try again.';
+        errorP.style.display = 'block';
+    }
+});
 
     // Check if user is already logged in on page load
     window.addEventListener('DOMContentLoaded', () => {
