@@ -2,6 +2,8 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const fs = require('fs');
+const session = require('express-session');//
+const bcrypt = require('bcryptjs');
 
 const app = express();
 const server = http.createServer(app);
@@ -12,14 +14,44 @@ const CSV_FILE = 'contacts.csv';
 const CHAT_FILE = 'chat-history.txt';
 
 // Middleware
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(express.static('public'));
+
+// Setup session handling
+app.use(session({
+  secret: 'my-super-secret-key-123',
+  resave: false,
+  saveUninitialized: false
+}));
+
+// Your 8 mock users
+const users = [
+    { id: 1, username: 'user1', passwordHash: bcrypt.hashSync('password123', 8) },
+    { id: 2, username: 'user2', passwordHash: bcrypt.hashSync('password456', 8) },
+    { id: 3, username: 'user3', passwordHash: bcrypt.hashSync('password789', 8) },
+    { id: 4, username: 'user4', passwordHash: bcrypt.hashSync('password012', 8) },
+    { id: 5, username: 'user5', passwordHash: bcrypt.hashSync('password345', 8) },
+    { id: 6, username: 'user6', passwordHash: bcrypt.hashSync('password678', 8) },
+    { id: 7, username: 'user7', passwordHash: bcrypt.hashSync('password901', 8) },
+    { id: 8, username: 'user8', passwordHash: bcrypt.hashSync('password234', 8) }
+];
+
+// Handle login submission
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+    const user = users.find(u => u.username === username);
+    if (user && bcrypt.compareSync(password, user.passwordHash)) {
+        req.session.user = user;
+        res.json({ success: true, message: 'Login successful!' });
+    } else {
+        res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+});
 
 // --- SOCKET.IO LIVE CHAT & STORAGE ---
 io.on('connection', (socket) => {
     console.log('A user connected to the CRM and Chat');
 
-    // Send existing chat history to newly connected users
     if (fs.existsSync(CHAT_FILE)) {
         const history = fs.readFileSync(CHAT_FILE, 'utf8');
         socket.emit('chat-history', history);
@@ -36,7 +68,7 @@ io.on('connection', (socket) => {
     });
 });
 
-// 1. Get all contacts (Optional API route if needed)
+// 1. Get all contacts
 app.get('/api/contacts', (req, res) => {
     let contacts = [];
     if (fs.existsSync(CSV_FILE)) {
@@ -101,7 +133,7 @@ app.get('/api/download-excel', (req, res) => {
     }
 });
 
-// Start the server
+// Start the server properly with Socket.io support
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running! Share this with your office: http://192.168.1.10:${PORT}`);
 });
