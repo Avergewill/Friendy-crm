@@ -134,6 +134,11 @@ app.get('/api/download-excel', (req, res) => {
 });
 
 // Start the server properly with Socket.io support
+// Serve your main HTML file
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/index.html');
+});
+
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running! Share this with your office: http://192.168.1.10:${PORT}`);
 });
