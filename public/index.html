@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friendly CRM Dashboard</title>
+    <style>
+        button[type="submit"] {
+            background-color: #2ea728; /* Changes button color to green */
+            border-radius: 12px;        /* Rounds the corners */
+            padding: 14px 20px;        /* Makes the button bigger */
+            font-size: 16px;           /* Adjusts text size */
+            cursor: pointer;           /* Changes cursor to a pointing hand */
+        }
+        body { 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+            margin: 0; 
+            padding: 40px 20px;
+            background-color: #87ceeb; /* Sky blue background */
+            background-size: cover; 
+            background-position: left;
+            background-attachment: fixed; 
+            color: #2da377;
+            min-height: 100vh;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { color: #2c3e50; margin: 0; font-size: 2.5rem; font-weight: 700; }
+        .header p { color: #3ea021; margin: 5px 0 0 0; }
+        .box { 
+            background: rgba(255, 255, 255, 0.95); 
+            padding: 35px; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
+            margin-bottom: 30px; 
+            border: 1px solid rgba(255,255,255,0.8);
+        }
+        h2 { color: #34495e; margin-top: 0; margin-bottom: 20px; font-size: 1.5rem; border-bottom: 2px solid #edf2f7; padding-bottom: 10px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+        .form-group { display: flex; flex-direction: column; }
+        label { margin-bottom: 8px; font-weight: 600; color: #5a6a85; font-size: 0.9rem; }
+        input { padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem; background-color: #f8fafc; }
+        input:focus { outline: none; border-color: #4a90e2; background-color: #fff; box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.15); }
+        button { 
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); 
+            color: white; border: none; padding: 14px 24px; border-radius: 8px; 
+            cursor: pointer; font-size: 1rem; font-weight: 600; width: 100%; 
+            box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+        }
+        #message { margin-top: 20px; padding: 12px 16px; border-radius: 8px; display: none; font-weight: 500; text-align: center; }
+        .success { background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { text-align: left; padding: 14px 16px; }
+        th { background-color: #f1f5f9; color: #475569; font-weight: 600; font-size: 0.9rem; text-transform: uppercase; }
+        td { border-bottom: 1px solid #f1f5f9; font-size: 0.95rem; }
+        tr:hover td { background-color: #f8fafc; }
+        .badge { background-color: #e2e8f0; color: #475569; padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Single Clean Header -->
+    <div class="header">
+        <h1>Welcome to 2026 enrollment</h1>
+        <p>created by Will</p>
+        
+        <!-- Goal Progress Card -->
+        <div style="margin: 20px auto 0 auto; max-width: 400px; background: rgba(255, 255, 255, 0.95); padding: 15px 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); text-align: left;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-weight: 600; color: #34495e; font-size: 0.9rem;">🎯 2026 Enrollment Goal</span>
+                <span id="goalText" style="font-weight: 700; color: #4a90e2; font-size: 0.9rem;">0 / 200 Enrolled</span>
+            </div>
+            <div style="width: 100%; background: #e2e8f0; height: 10px; border-radius: 5px; overflow: hidden;">
+                <div id="goalProgressBar" style="width: 0%; background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); height: 100%; transition: width 0.4s ease;"></div>
+            </div>
+        </div>
+
+        <!-- Logged in User Bar with Memory -->
+        <div style="margin-top: 15px; display: inline-flex; align-items: center; background: rgba(255,255,255,0.9); padding: 8px 16px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+            <label for="activeUser" style="margin: 0 10px 0 0; font-size: 0.85rem; color: #475569;">Logged in as:</label>
+            <input type="text" id="activeUser" placeholder="Enter your name" style="padding: 6px 10px; font-size: 0.9rem; width: 140px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff;" oninput="saveUserSession(this.value)">
+        </div>
+    </div>
+
+    <!-- Form Box -->
+    <div class="box">
+        <h2>Add a New Connection</h2>
+        <form id="contactForm">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>First Name</label>
+                    <input type="text" id="firstName" placeholder="Jane" required>
+                </div>
+                <div class="form-group">
+                    <label>Last Name</label>
+                    <input type="text" id="lastName" placeholder="Doe" required>
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="email" placeholder="jane.doe@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="text" id="phone" placeholder="(555) 000-0000">
+                </div>
+                <div class="form-group">
+                    <label>Date of Birth</label>
+                    <input type="date" id="dob">
+                </div>
+                <div class="form-group">
+                    <label>Health Plan Provider</label>
+                    <input type="text" id="healthPlan" placeholder="Blue Cross, Aetna, etc.">
+                </div>
+            </div>
+
+            <!-- Collapsible Extra Details -->
+            <div style="margin-bottom: 20px;">
+                <button type="button" id="toggleExtraDetails" style="background: #edf2f7; color: #475569; padding: 10px; font-size: 0.9rem; box-shadow: none; border: 1px solid #cbd5e1; margin-bottom: 10px;">
+                    ➕ Show Additional Details (Address & Family)
+                </button>
+                <div id="extraDetailsSection" style="display: none; padding: 15px; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1; margin-top: 10px;">
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label>Residential Address</label>
+                        <input type="text" id="address" placeholder="123 Main St, City, State">
+                    </div>
+                    <div class="form-group">
+                        <label>Family Members / Dependents</label>
+                        <textarea id="family" placeholder="Spouse, Child..." style="padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-family: inherit; font-size: 1rem; background-color: #fff;" rows="3"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit">Save Contact</button>
+        </form>
+        <div id="message"></div>
+    </div>
+
+    <!-- Live Chat Section -->
+    <div class="box" style="margin-top: 30px;">
+        <h3>Team Live Chat</h3>
+        <div id="chat-window" style="height: 150px; border: 1px solid #ccc; padding: 10px; overflow-y: scroll; margin-bottom: 10px; background: #fff; border-radius: 5px;">
+            <!-- Messages will pop up here -->
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="chat-input" placeholder="Type a message..." style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+            <button id="send-btn" style="padding: 8px 16px; background-color: #2da377; color: white; border: none; border-radius: 4px; cursor: pointer; width: auto;">Send</button>
+        </div>
+    </div>
+
+    <!-- Contacts List Box -->
+    <div class="box">
+        <h2>Your Network</h2>
+        <button onclick="downloadCSV()" style="margin-bottom: 20px; padding: 10px 15px; background-color: #1D7373; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; width: auto;">
+            📥 Download Excel Sheet
+        </button>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 60px;">ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>DOB</th>
+                        <th>Health Plan</th>
+                        <th>Address</th>
+                        <th>Family</th>
+                        <th>User</th>
+                    </tr>
+                </thead>
+                <tbody id="contactsTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Socket.io Frontend Script -->
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+    const chatWindow = document.getElementById('chat-window');
+    const chatInput = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('send-btn');
+
+    // Function to send message
+    function sendMessage() {
+        const messageText = chatInput.value.trim();
+        const senderName = document.getElementById('activeUser').value || 'Anonymous';
+
+        if (messageText !== '') {
+            // Send an object containing both the message and the message 
+            socket.emit('chat-message',{ user: senderName, text: messageText });
+            chatInput.value = ''; // Clear the input box
+        }
+    }
+
+    // Send when clicking the send button
+    sendBtn.addEventListener('click', sendMessage);
+
+    // Send when pressing Enter
+    chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+
+    // Receive messages from the server and display them
+    socket.on('chat-message', (data) => {
+        const messageElement = document.createElement('div');
+        messageElement.style.padding = '6px 0';
+        messageElement.style.borderBottom = '1px solid #f1f5f9';
+       
+        // Display the sender's name in bold followed by their message
+        messageElement.innerHTML = `<strong>${data.user}:</strong> ${data.text}`;
+        
+        chatWindow.appendChild(messageElement);
+
+        // Auto-scroll to the bottom of the chat window
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    });
+</script>
+
+<script>
+    // Save user choice to browser memory automatically
+    function saveUserSession(userName) {
+        localStorage.setItem('crm_active_user', userName);
+    }
+
+    // Load saved user automatically when the page loads
+    window.addEventListener('DOMContentLoaded', () => {
+        const savedUser = localStorage.getItem('crm_active_user');
+        if (savedUser) {
+            document.getElementById('activeUser').value = savedUser;
+        } else {
+            document.getElementById('activeUser').value = 'Will'; // Default fallback
+            localStorage.setItem('crm_active_user', 'Will');
+        }
+        fetchContacts();
+    });
+
+    document.getElementById('toggleExtraDetails').addEventListener('click', function() {
+        const section = document.getElementById('extraDetailsSection');
+        if (section.style.display === 'none') {
+            section.style.display = 'block';
+            this.innerText = '➖ Hide Additional Details';
+        } else {
+            section.style.display = 'none';
+            this.innerText = '➕ Show Additional Details (Address & Family)';
+        }
+    });
+
+    async function fetchContacts() {
+        try {
+            const response = await fetch('/api/contacts');
+            const contacts = await response.json();
+            const tableBody = document.getElementById('contactsTableBody');
+            tableBody.innerHTML = '';
+            
+            // Goal Progress (Target set to 200)
+            const targetGoal = 200;
+            const currentCount = contacts.length;
+            const percentage = Math.min(Math.round((currentCount / targetGoal) * 100), 100);
+            
+            document.getElementById('goalText').innerText = `${currentCount} / ${targetGoal} Enrolled`;
+            document.getElementById('goalProgressBar').style.width = `${percentage}%`;
+
+            if(contacts.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #94a3b8; padding: 30px;">No contacts added yet.</td></tr>`;
+                return;
+            }
+            
+            contacts.forEach(contact => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><span class="badge">#${contact.id}</span></td>
+                    <td style="font-weight: 500; color: #1e293b;">${contact.firstName} ${contact.lastName}</td>
+                    <td style="color: #64748b;">${contact.email}</td>
+                    <td style="color: #64748b;">${contact.phone || '—'}</td>
+                    <td style="color: #64748b;">${contact.dob || '—'}</td>
+                    <td style="color: #64748b;">${contact.healthPlan || '—'}</td>
+                    <td style="color: #64748b; font-size: 0.85rem;">${contact.address || '—'}</td>
+                    <td style="color: #64748b; font-size: 0.85rem;">${contact.family || '—'}</td>
+                    <td style="color: #2563eb; font-weight: 600; font-size: 0.85rem;">${contact.user || 'Will'}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        } catch (error) {
+            console.error('Error fetching contacts:', error);
+        }
+    }
+
+    document.getElementById('contactForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const contactData = {
+            firstName: document.getElementById('firstName').value,
+            lastName: document.getElementById('lastName').value,
+            email: document.getElementById('email').value,
+            phone: document.getElementById('phone').value,
+            dob: document.getElementById('dob').value,
+            healthPlan: document.getElementById('healthPlan').value,
+            address: document.getElementById('address').value,
+            family: document.getElementById('family').value,
+            user: document.getElementById('activeUser').value || 'Will'
+        };
+
+        try {
+            const response = await fetch('/api/contacts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(contactData)
+            });
+            
+            const result = await response.json();
+            const msgDiv = document.getElementById('message');
+            msgDiv.className = 'success';
+            msgDiv.style.display = 'block';
+            msgDiv.innerText = `✨ ${result.message}`;
+            
+            document.getElementById('contactForm').reset();
+            document.getElementById('extraDetailsSection').style.display = 'none';
+            document.getElementById('toggleExtraDetails').innerText = '➕ Show Additional Details (Address & Family)';
+            
+            setTimeout(() => { msgDiv.style.display = 'none'; }, 4000);
+            fetchContacts();
+        } catch (error) {
+            console.error('Error saving contact:', error);
+        }
+    });
+
+    function downloadCSV() {
+        window.location.href = '/api/download-excel';
+    }
+</script>
+</body>
+</html>
