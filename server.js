@@ -1,1 +1,112 @@
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const session = require('express-session');
+const bcrypt = require('bcryptjs');
+const path = require('path');
 
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
+
+const users = [];
+const contacts = [];
+let chatHistory = "Welcome to Office Live Chat!\n";
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(session({
+  secret: 'wyn-crm-secret-key-2026',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false }
+}));
+
+app.use(express.static(path.join(__dirname)));
+
+app.get('/api/session', (req, res) => {
+  if (req.session && req.session.user) {
+    res.json({ loggedIn: true, user: req.session.user });
+  } else {
+    res.json({ loggedIn: false });
+  }
+});
+
+app.post('/register-user', async (req, res) => {
+  const { username, password, adminCode } = req.body;
+  
+  if (adminCode !== 'Wyn2026') {
+    return res.json({ success: false, message: 'Invalid Admin Code. Use Wyn2026' });
+  }
+
+  const existingUser = users.find(u => u.username === username);
+  if (existingUser) {
+    return res.json({ success: false, message: 'Username already exists.' });
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  users.push({ username, password: hashedPassword });
+  res.json({ success: true });
+});
+
+app.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+  const user = users.find(u => u.username === username);
+
+  if (!user) {
+    return res.json({ success: false, message: 'Invalid username or password.' });
+  }
+
+  const isPasswordValid = await bcrypt.compare(password, user.password);
+  if (!isPasswordValid) {
+    return res.json({ success: false, message: 'Invalid username or password.' });
+  }
+
+  req.session.user = { username };
+  res.json({ success: true, user: req.session.user });
+});
+
+app.post('/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.json({ success: true });
+  });
+});
+
+app.get('/api/contacts', (req, res) => {
+  res.json(contacts);
+});
+
+app.post('/api/contacts', (req, res) => {
+  const newContact = {
+    id: contacts.length + 1,
+    ...req.body
+  };
+  contacts.push(newContact);
+  res.json({ success: true, contact: newContact });
+});
+
+app.get('/api/download-excel', (req, res) => {
+  let csv = 'ID,First Name,Last Name,Email,Phone,DOB,Line of Business,Carrier,Level,Premium,Address,Family Notes,More Details,Agent\n';
+  contacts.forEach(c => {
+    csv += `"${c.id}","${c.firstName}","${c.lastName}","${c.email}","${c.phone}","${c.dob}","${c.lineOfBusiness}","${c.healthPlan}","${c.insuranceLevel}","${c.premium}","${c.address}","${c.family}","${c.moreDetails}","${c.user}"\n`;
+  });
+  
+  res.header('Content-Type', 'text/csv');
+  res.attachment('wyn-crm-contacts.csv');
+  res.send(csv);
+});
+
+io.on('connection', (socket) => {
+  socket.emit('chat-history', chatHistory);
+
+  socket.on('chat-message', (data) => {
+    const messageLine = `${data.user}: ${data.text}\n`;
+    chatHistory += messageLine;
+    io.emit('chat-message', data);
+  });
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
