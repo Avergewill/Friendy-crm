@@ -301,6 +301,15 @@
       font-weight: 600;
     }
 
+    .badge-benson {
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
     .btn-export {
       background: var(--success);
       color: white;
@@ -519,115 +528,133 @@
     </div>
 
     <div>
-      <h2>Add Client & ACA Health Insurance Record</h2>
+      <h2>Add Client & Record</h2>
       <form id="clientForm" onsubmit="addClient(event)">
 
-        <div class="section-divider">1. Client Personal Information</div>
+        <!-- Line of Business Selection (Dr. Benson on top) -->
+        <div class="section-divider">Select Line of Business</div>
         <div class="form-grid">
-          <div>
-            <label>First Name *</label>
-            <input type="text" id="firstName" required placeholder="First name">
-          </div>
-          <div>
-            <label>Last Name *</label>
-            <input type="text" id="lastName" required placeholder="Last name">
-          </div>
-          <div>
-            <label>Phone Number *</label>
-            <input type="tel" id="phone" required placeholder="+1 (555) 000-0000">
-          </div>
-        </div>
-
-        <div class="row mb-3">
-  <!-- DOB Field -->
-  <div class="col-md-4">
-    <label for="dob" class="form-label">DOB</label>
-    <input type="date" class="form-control" id="dob" required>
-  </div>
-  
-  <!-- Email Field -->
-  <div class="col-md-4">
-    <label for="email" class="form-label">Email Address</label>
-    <input type="email" class="form-control" id="email" placeholder="client@email.com">
-  </div>
-
-  <!-- Address Field -->
-  <div class="col-md-4">
-    <label for="address" class="form-label">Address / Zip Code</label>
-    <input type="text" class="form-control" id="address" placeholder="Street, City, State, Zip">
-  </div>
-</div>
-
-<!-- Household / Family Notes Row Below -->
-<div class="mb-3">
-  <label for="family" class="form-label">Household / Family Notes</label>
-  <textarea class="form-control" id="family" rows="2" placeholder="Notes, household details, beneficiaries..."></textarea>
-</div>
-        
-
-
-        <div class="section-divider">2. ACA Health Insurance Details</div>
-        <div class="form-grid">
-          <div>
+          <div class="full-width">
             <label>Line of Business *</label>
-            <select id="lineOfBusiness" required>
+            <select id="lineOfBusiness" required onchange="handleLineOfBusinessChange()">
+              <option value="Dr. Benson">Dr. Benson</option>
               <option value="ACA Health Care">ACA Health Care</option>
             </select>
           </div>
-          <div style="grid-column: span 2;">
-            <label>Carrier / Provider *</label>
-            <select id="healthPlan" required>
-              <option value="">Select Carrier</option>
-              <option value="Molina">Molina</option>
-              <option value="Oscar">Oscar</option>
-              <option value="Blue Cross Blue Shield Of GA">Blue Cross Blue Shield Of GA</option>
-              <option value="Blue Cross Blue Shield">Blue Cross Blue Shield</option>
-              <option value="Alliant">Alliant</option>
-              <option value="Kaiser Virtual">Kaiser Virtual</option>
-              <option value="Kaiser Silver">Kaiser Silver</option>
-              <option value="United Health Care">United Health Care</option>
-            </select>
+        </div>
+
+        <!-- Dr. Benson Streamlined Input Section -->
+        <div id="bensonSection">
+          <div class="section-divider">Dr. Benson Patient & Schedule Info</div>
+          <div class="form-grid">
+            <div style="grid-column: span 2;">
+              <label>Patient Name *</label>
+              <input type="text" id="bensonName" placeholder="Patient full name">
+            </div>
+            <div>
+              <label>Date *</label>
+              <input type="date" id="bensonDate">
+            </div>
+          </div>
+          <div style="margin-top: 15px;">
+            <label>Calendar Notes & Reminders *</label>
+            <textarea id="bensonNotes" rows="3" placeholder="Add notes, follow-up reminders..."></textarea>
           </div>
         </div>
 
-        <div class="form-grid" style="margin-top: 10px;">
-          <div>
-            <label>Insurance Level *</label>
-            <select id="insuranceLevel" required>
-              <option value="">Select Level</option>
-              <option value="Bronze">Bronze</option>
-              <option value="Silver">Silver</option>
-              <option value="Gold">Gold</option>
-              <option value="Platinum">Platinum</option>
-            </select>
+        <!-- ACA Health Care Form Section -->
+        <div id="acaSection" style="display: none;">
+          <div class="section-divider">1. Client Personal Information</div>
+          <div class="form-grid">
+            <div>
+              <label>First Name *</label>
+              <input type="text" id="firstName" placeholder="First name">
+            </div>
+            <div>
+              <label>Last Name *</label>
+              <input type="text" id="lastName" placeholder="Last name">
+            </div>
+            <div>
+              <label>Phone Number *</label>
+              <input type="tel" id="phone" placeholder="+1 (555) 000-0000">
+            </div>
           </div>
-          <div>
-            <label>Monthly Premium ($)</label>
-            <input type="number" step="0.01" id="premium" placeholder="0.00">
+
+          <div class="form-grid" style="margin-top: 15px;">
+            <div>
+              <label for="dob">DOB</label>
+              <input type="date" id="dob">
+            </div>
+            <div>
+              <label for="email">Email Address</label>
+              <input type="email" id="email" placeholder="client@email.com">
+            </div>
+            <div>
+              <label for="address">Address / Zip Code</label>
+              <input type="text" id="address" placeholder="Street, City, State, Zip">
+            </div>
+          </div>
+
+          <div style="margin-top: 15px;">
+            <label for="family">Household / Family Notes</label>
+            <textarea id="family" rows="2" placeholder="Notes, household details, beneficiaries..."></textarea>
+          </div>
+
+          <div class="section-divider">2. ACA Health Insurance Details</div>
+          <div class="form-grid">
+            <div style="grid-column: span 3;">
+              <label>Carrier / Provider *</label>
+              <select id="healthPlan">
+                <option value="">Select Carrier</option>
+                <option value="Molina">Molina</option>
+                <option value="Oscar">Oscar</option>
+                <option value="Blue Cross Blue Shield Of GA">Blue Cross Blue Shield Of GA</option>
+                <option value="Blue Cross Blue Shield">Blue Cross Blue Shield</option>
+                <option value="Alliant">Alliant</option>
+                <option value="Kaiser Virtual">Kaiser Virtual</option>
+                <option value="Kaiser Silver">Kaiser Silver</option>
+                <option value="United Health Care">United Health Care</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid" style="margin-top: 10px;">
+            <div>
+              <label>Insurance Level *</label>
+              <select id="insuranceLevel">
+                <option value="">Select Level</option>
+                <option value="Bronze">Bronze</option>
+                <option value="Silver">Silver</option>
+                <option value="Gold">Gold</option>
+                <option value="Platinum">Platinum</option>
+              </select>
+            </div>
+            <div>
+              <label>Monthly Premium ($)</label>
+              <input type="number" step="0.01" id="premium" placeholder="0.00">
+            </div>
+          </div>
+
+          <div style="margin-top: 15px;">
+            <div class="collapsible-header" onclick="toggleMoreDetailsSection()">
+              <span id="moreDetailsToggleText">+ Add More Details / Coverage Notes</span>
+              <span id="moreDetailsToggleIcon">▼</span>
+            </div>
+            <div id="moreDetailsContainer" class="collapsible-content">
+              <label>More Details / Coverage Notes</label>
+              <input type="text" id="moreDetails" placeholder="Subsidy, plan code, remarks...">
+            </div>
           </div>
         </div>
 
-        <!-- Collapsible More Details / Coverage Notes -->
-        <div style="margin-top: 15px;">
-          <div class="collapsible-header" onclick="toggleMoreDetailsSection()">
-            <span id="moreDetailsToggleText">+ Add More Details / Coverage Notes</span>
-            <span id="moreDetailsToggleIcon">▼</span>
-          </div>
-          <div id="moreDetailsContainer" class="collapsible-content">
-            <label>More Details / Coverage Notes</label>
-            <input type="text" id="moreDetails" placeholder="Subsidy, plan code, remarks...">
-          </div>
-        </div>
-
-        <!-- Shorter Save Button Aligned to the Right -->
+        <!-- Save Button -->
         <div class="btn-save-container">
-          <button type="submit" class="btn-primary" style="background: var(--success);">Save Client & Policy
-            Record</button>
+          <button type="submit" class="btn-primary" style="background: var(--success);">Save Record</button>
         </div>
       </form>
     </div>
 
-    <!-- Schedule & Calendar Widget Moved to the Bottom -->
+    <!-- Schedule & Calendar Widget -->
     <div style="margin-top: 30px;">
       <h2>Schedule & Calendar</h2>
       <div class="collapsible-header" onclick="toggleCalendarSection()">
@@ -650,16 +677,33 @@
       </div>
     </div>
 
+    <!-- Dr. Benson Database Records Section -->
     <div class="dashboard-section">
-      <h2>Client & Insurance Database Records</h2>
-
+      <h2>Dr. Benson Database Records</h2>
       <div class="search-bar">
-        <input type="text" id="searchInput" onkeyup="filterTable()"
-          placeholder="🔍 Search by name, carrier, level, phone...">
+        <input type="text" id="searchBensonInput" onkeyup="filterBensonTable()" placeholder="🔍 Search Dr. Benson records...">
       </div>
+      <table id="bensonTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Patient Name</th>
+            <th>Date</th>
+            <th>Notes & Reminders</th>
+            <th>Agent</th>
+          </tr>
+        </thead>
+        <tbody id="bensonTableBody"></tbody>
+      </table>
+    </div>
 
+    <!-- ACA Health Insurance Database Records Section -->
+    <div class="dashboard-section">
+      <h2>ACA Health Insurance Database Records</h2>
+      <div class="search-bar">
+        <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="🔍 Search ACA records...">
+      </div>
       <a href="/api/download-excel" class="btn-export">📥 Download to Excel (CSV)</a>
-
       <table id="clientTable">
         <thead>
           <tr>
@@ -704,6 +748,7 @@
     window.onload = function () {
       checkSession();
       renderCalendar();
+      handleLineOfBusinessChange();
     };
 
     function checkSession() {
@@ -780,11 +825,6 @@
             errorDiv.style.display = 'block';
             errorDiv.textContent = data.message || 'Invalid username or password';
           }
-        })
-        .catch(() => {
-          const errorDiv = document.getElementById('loginError');
-          errorDiv.style.display = 'block';
-          errorDiv.textContent = 'Server connection error during login.';
         });
     }
 
@@ -821,12 +861,46 @@
 
     function logoutUser() {
       fetch('/logout', { method: 'POST' })
-        .then(() => {
-          location.reload();
-        })
-        .catch(() => {
-          location.reload();
-        });
+        .then(() => { location.reload(); })
+        .catch(() => { location.reload(); });
+    }
+
+    function handleLineOfBusinessChange() {
+      const lob = document.getElementById('lineOfBusiness').value;
+      const bensonSection = document.getElementById('bensonSection');
+      const acaSection = document.getElementById('acaSection');
+
+      if (lob === 'Dr. Benson') {
+        bensonSection.style.display = 'block';
+        acaSection.style.display = 'none';
+        
+        // Remove required tags from hidden ACA fields
+        document.getElementById('firstName').removeAttribute('required');
+        document.getElementById('lastName').removeAttribute('required');
+        document.getElementById('phone').removeAttribute('required');
+        document.getElementById('healthPlan').removeAttribute('required');
+        document.getElementById('insuranceLevel').removeAttribute('required');
+
+        // Add required tags to Dr. Benson fields
+        document.getElementById('bensonName').setAttribute('required', 'true');
+        document.getElementById('bensonDate').setAttribute('required', 'true');
+        document.getElementById('bensonNotes').setAttribute('required', 'true');
+      } else {
+        bensonSection.style.display = 'none';
+        acaSection.style.display = 'block';
+
+        // Remove required tags from hidden Benson fields
+        document.getElementById('bensonName').removeAttribute('required');
+        document.getElementById('bensonDate').removeAttribute('required');
+        document.getElementById('bensonNotes').removeAttribute('required');
+
+        // Add required tags back to ACA fields
+        document.getElementById('firstName').setAttribute('required', 'true');
+        document.getElementById('lastName').setAttribute('required', 'true');
+        document.getElementById('phone').setAttribute('required', 'true');
+        document.getElementById('healthPlan').setAttribute('required', 'true');
+        document.getElementById('insuranceLevel').setAttribute('required', 'true');
+      }
     }
 
     function toggleMoreDetailsSection() {
@@ -894,29 +968,52 @@
       fetch('/api/contacts')
         .then(res => res.json())
         .then(contacts => {
-          renderTable(contacts);
+          renderTables(contacts);
         })
         .catch(err => console.error('Failed to load contacts', err));
     }
 
     function addClient(event) {
       event.preventDefault();
+      const lob = document.getElementById('lineOfBusiness').value;
 
-      const newContact = {
-        firstName: document.getElementById('firstName').value,
-        lastName: document.getElementById('lastName').value,
-        email: document.getElementById('email').value || 'N/A',
-        phone: document.getElementById('phone').value,
-        dob: document.getElementById('dob').value || 'N/A',
-        lineOfBusiness: document.getElementById('lineOfBusiness').value,
-        healthPlan: document.getElementById('healthPlan').value,
-        insuranceLevel: document.getElementById('insuranceLevel').value,
-        premium: document.getElementById('premium').value || '0.00',
-        moreDetails: document.getElementById('moreDetails') ? document.getElementById('moreDetails').value || 'N/A' : 'N/A',
-        address: document.getElementById('address').value || 'N/A',
-        family: document.getElementById('family').value || 'N/A',
-        user: currentUser
-      };
+      let newContact = {};
+
+      if (lob === 'Dr. Benson') {
+        const fullName = document.getElementById('bensonName').value.trim();
+        const nameParts = fullName.split(' ');
+        newContact = {
+          firstName: nameParts[0] || fullName,
+          lastName: nameParts.slice(1).join(' ') || '',
+          email: 'N/A',
+          phone: 'N/A',
+          dob: document.getElementById('bensonDate').value,
+          lineOfBusiness: 'Dr. Benson',
+          healthPlan: 'N/A',
+          insuranceLevel: 'N/A',
+          premium: '0.00',
+          moreDetails: document.getElementById('bensonNotes').value,
+          address: 'N/A',
+          family: 'N/A',
+          user: currentUser
+        };
+      } else {
+        newContact = {
+          firstName: document.getElementById('firstName').value,
+          lastName: document.getElementById('lastName').value,
+          email: document.getElementById('email').value || 'N/A',
+          phone: document.getElementById('phone').value,
+          dob: document.getElementById('dob').value || 'N/A',
+          lineOfBusiness: document.getElementById('lineOfBusiness').value,
+          healthPlan: document.getElementById('healthPlan').value,
+          insuranceLevel: document.getElementById('insuranceLevel').value,
+          premium: document.getElementById('premium').value || '0.00',
+          moreDetails: document.getElementById('moreDetails') ? document.getElementById('moreDetails').value || 'N/A' : 'N/A',
+          address: document.getElementById('address').value || 'N/A',
+          family: document.getElementById('family').value || 'N/A',
+          user: currentUser
+        };
+      }
 
       fetch('/api/contacts', {
         method: 'POST',
@@ -927,34 +1024,57 @@
         .then(data => {
           if (data.success) {
             document.getElementById('clientForm').reset();
-            document.getElementById('moreDetailsContainer').classList.remove('active');
-            document.getElementById('moreDetailsToggleText').textContent = '+ Add More Details / Coverage Notes';
-            document.getElementById('moreDetailsToggleIcon').textContent = '▼';
+            handleLineOfBusinessChange();
             loadContacts();
           }
         });
     }
 
-    function renderTable(contacts) {
-      const tableBody = document.getElementById('clientTableBody');
-      tableBody.innerHTML = '';
+    function renderTables(contacts) {
+      const bensonBody = document.getElementById('bensonTableBody');
+      const acaBody = document.getElementById('clientTableBody');
+      bensonBody.innerHTML = '';
+      acaBody.innerHTML = '';
 
       contacts.forEach(c => {
         const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>#${c.id}</td>
-          <td><b>${c.firstName} ${c.lastName}</b><br><small style="color:#64748b;">DOB: ${c.dob}</small></td>
-          <td>${c.email}<br>${c.phone}</td>
-          <td><span class="badge-insurance">${c.lineOfBusiness || 'ACA Health Care'}</span></td>
-          <td><b>${c.healthPlan || 'N/A'}</b></td>
-          <td><b>${c.insuranceLevel || 'N/A'}</b></td>
-          <td>$${c.premium || '0.00'}</td>
-          <td>${c.address}<br><small style="color:#64748b;">${c.family}</small></td>
-          <td>${c.moreDetails || 'N/A'}</td>
-          <td>${c.user}</td>
-        `;
-        tableBody.appendChild(row);
+        if (c.lineOfBusiness === 'Dr. Benson') {
+          row.innerHTML = `
+            <td>#${c.id}</td>
+            <td><b>${c.firstName} ${c.lastName}</b></td>
+            <td>${c.dob}</td>
+            <td>${c.moreDetails}</td>
+            <td>${c.user}</td>
+          `;
+          bensonBody.appendChild(row);
+        } else {
+          row.innerHTML = `
+            <td>#${c.id}</td>
+            <td><b>${c.firstName} ${c.lastName}</b><br><small style="color:#64748b;">DOB: ${c.dob}</small></td>
+            <td>${c.email}<br>${c.phone}</td>
+            <td><span class="badge-insurance">${c.lineOfBusiness || 'ACA Health Care'}</span></td>
+            <td><b>${c.healthPlan || 'N/A'}</b></td>
+            <td><b>${c.insuranceLevel || 'N/A'}</b></td>
+            <td>$${c.premium || '0.00'}</td>
+            <td>${c.address}<br><small style="color:#64748b;">${c.family}</small></td>
+            <td>${c.moreDetails || 'N/A'}</td>
+            <td>${c.user}</td>
+          `;
+          acaBody.appendChild(row);
+        }
       });
+    }
+
+    function filterBensonTable() {
+      let input = document.getElementById('searchBensonInput');
+      let filter = input.value.toLowerCase();
+      let table = document.getElementById('bensonTable');
+      let tr = table.getElementsByTagName('tr');
+
+      for (let i = 1; i < tr.length; i++) {
+        let tdText = tr[i].textContent || tr[i].innerText;
+        tr[i].style.display = tdText.toLowerCase().indexOf(filter) > -1 ? "" : "none";
+      }
     }
 
     function filterTable() {
@@ -965,11 +1085,7 @@
 
       for (let i = 1; i < tr.length; i++) {
         let tdText = tr[i].textContent || tr[i].innerText;
-        if (tdText.toLowerCase().indexOf(filter) > -1) {
-          tr[i].style.display = "";
-        } else {
-          tr[i].style.display = "none";
-        }
+        tr[i].style.display = tdText.toLowerCase().indexOf(filter) > -1 ? "" : "none";
       }
     }
 
