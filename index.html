@@ -301,15 +301,6 @@
       font-weight: 600;
     }
 
-    .badge-benson {
-      background: #e0f2fe;
-      color: #0369a1;
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
-    }
-
     .btn-export {
       background: var(--success);
       color: white;
@@ -504,8 +495,7 @@
           <input type="password" id="regAdminCode" placeholder="Enter Wyn2026" required>
           <button type="button" class="password-toggle" onclick="togglePassword('regAdminCode', this)">Show</button>
         </div>
-        <button type="submit" class="btn-primary" style="background: var(--success); width: 100%;">Create
-          Account</button>
+        <button type="submit" class="btn-primary" style="background: var(--success); width: 100%;">Create Account</button>
       </form>
 
       <div style="margin-top: 20px; text-align: center; font-size: 13px;">
@@ -531,7 +521,7 @@
       <h2>Add Client & Record</h2>
       <form id="clientForm" onsubmit="addClient(event)">
 
-        <!-- Line of Business Selection (Dr. Benson on top) -->
+        <!-- Line of Business Selection -->
         <div class="section-divider">Select Line of Business</div>
         <div class="form-grid">
           <div class="full-width">
@@ -677,8 +667,8 @@
       </div>
     </div>
 
-    <!-- Dr. Benson Database Records Section -->
-    <div class="dashboard-section">
+    <!-- Dr. Benson Database Records Section (Only shown when Dr. Benson is selected) -->
+    <div class="dashboard-section" id="bensonTableSection">
       <h2>Dr. Benson Database Records</h2>
       <div class="search-bar">
         <input type="text" id="searchBensonInput" onkeyup="filterBensonTable()" placeholder="🔍 Search Dr. Benson records...">
@@ -697,8 +687,8 @@
       </table>
     </div>
 
-    <!-- ACA Health Insurance Database Records Section -->
-    <div class="dashboard-section">
+    <!-- ACA Health Insurance Database Records Section (Only shown when ACA is selected) -->
+    <div class="dashboard-section" id="acaTableSection" style="display: none;">
       <h2>ACA Health Insurance Database Records</h2>
       <div class="search-bar">
         <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="🔍 Search ACA records...">
@@ -869,10 +859,14 @@
       const lob = document.getElementById('lineOfBusiness').value;
       const bensonSection = document.getElementById('bensonSection');
       const acaSection = document.getElementById('acaSection');
+      const bensonTableSec = document.getElementById('bensonTableSection');
+      const acaTableSec = document.getElementById('acaTableSection');
 
       if (lob === 'Dr. Benson') {
         bensonSection.style.display = 'block';
         acaSection.style.display = 'none';
+        bensonTableSec.style.display = 'block';
+        acaTableSec.style.display = 'none';
         
         // Remove required tags from hidden ACA fields
         document.getElementById('firstName').removeAttribute('required');
@@ -888,6 +882,8 @@
       } else {
         bensonSection.style.display = 'none';
         acaSection.style.display = 'block';
+        bensonTableSec.style.display = 'none';
+        acaTableSec.style.display = 'block';
 
         // Remove required tags from hidden Benson fields
         document.getElementById('bensonName').removeAttribute('required');
