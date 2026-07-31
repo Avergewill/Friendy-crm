@@ -301,6 +301,15 @@
       font-weight: 600;
     }
 
+    .badge-benson {
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
     .btn-export {
       background: var(--success);
       color: white;
@@ -667,12 +676,13 @@
       </div>
     </div>
 
-    <!-- Dr. Benson Database Records Section (Only shown when Dr. Benson is selected) -->
+    <!-- Dr. Benson Database Records Section -->
     <div class="dashboard-section" id="bensonTableSection">
       <h2>Dr. Benson Database Records</h2>
       <div class="search-bar">
         <input type="text" id="searchBensonInput" onkeyup="filterBensonTable()" placeholder="🔍 Search Dr. Benson records...">
       </div>
+      <a href="/api/download-excel" class="btn-export">📥 Download Dr. Benson Records (CSV)</a>
       <table id="bensonTable">
         <thead>
           <tr>
@@ -687,13 +697,13 @@
       </table>
     </div>
 
-    <!-- ACA Health Insurance Database Records Section (Only shown when ACA is selected) -->
+    <!-- ACA Health Insurance Database Records Section -->
     <div class="dashboard-section" id="acaTableSection" style="display: none;">
       <h2>ACA Health Insurance Database Records</h2>
       <div class="search-bar">
         <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="🔍 Search ACA records...">
       </div>
-      <a href="/api/download-excel" class="btn-export">📥 Download to Excel (CSV)</a>
+      <a href="/api/download-excel" class="btn-export">📥 Download ACA Records (CSV)</a>
       <table id="clientTable">
         <thead>
           <tr>
