@@ -478,11 +478,11 @@
       <form id="loginForm" onsubmit="handleLogin(event)">
         <div style="margin-bottom: 15px;">
           <label>Username</label>
-          <input type="text" id="loginUsername" required placeholder="Enter username">
+          <input type="text" id="loginUsername" required autocomplete="username" placeholder="Enter username">
         </div>
         <div style="margin-bottom: 20px;" class="password-group">
           <label>Password</label>
-          <input type="password" id="loginPassword" required placeholder="Enter password">
+          <input type="password" id="loginPassword" required autocomplete="current-password" placeholder="Enter password">
           <button type="button" class="password-toggle" onclick="togglePassword('loginPassword', this)">Show</button>
         </div>
         <button type="submit" class="btn-primary" style="width: 100%;">Sign In</button>
@@ -492,16 +492,16 @@
       <form id="registerForm" onsubmit="handleRegister(event)" style="display: none;">
         <div style="margin-bottom: 12px;">
           <label>Choose Username</label>
-          <input type="text" id="regUsername" placeholder="Choose username" required>
+          <input type="text" id="regUsername" placeholder="Choose username" required autocomplete="username">
         </div>
         <div style="margin-bottom: 12px;" class="password-group">
           <label>Choose Password</label>
-          <input type="password" id="regPassword" placeholder="Choose password" required>
+          <input type="password" id="regPassword" placeholder="Choose password" required autocomplete="new-password">
           <button type="button" class="password-toggle" onclick="togglePassword('regPassword', this)">Show</button>
         </div>
         <div style="margin-bottom: 20px;" class="password-group">
           <label>Admin Code</label>
-          <input type="password" id="regAdminCode" placeholder="Enter Wyn2026" required>
+          <input type="password" id="regAdminCode" placeholder="Enter Wyn2026" required autocomplete="off">
           <button type="button" class="password-toggle" onclick="togglePassword('regAdminCode', this)">Show</button>
         </div>
         <button type="submit" class="btn-primary" style="background: var(--success); width: 100%;">Create Account</button>
@@ -530,39 +530,20 @@
       <h2>Add Client & Record</h2>
       <form id="clientForm" onsubmit="addClient(event)">
 
-        <!-- Line of Business Selection -->
+        <!-- Line of Business Selection (ACA first, Dr. Benson second) -->
         <div class="section-divider">Select Line of Business</div>
         <div class="form-grid">
           <div class="full-width">
             <label>Line of Business *</label>
             <select id="lineOfBusiness" required onchange="handleLineOfBusinessChange()">
-              <option value="Dr. Benson">Dr. Benson</option>
               <option value="ACA Health Care">ACA Health Care</option>
+              <option value="Dr. Benson">Dr. Benson</option>
             </select>
           </div>
         </div>
 
-        <!-- Dr. Benson Streamlined Input Section -->
-        <div id="bensonSection">
-          <div class="section-divider">Dr. Benson Patient & Schedule Info</div>
-          <div class="form-grid">
-            <div style="grid-column: span 2;">
-              <label>Patient Name *</label>
-              <input type="text" id="bensonName" placeholder="Patient full name">
-            </div>
-            <div>
-              <label>Date *</label>
-              <input type="date" id="bensonDate">
-            </div>
-          </div>
-          <div style="margin-top: 15px;">
-            <label>Calendar Notes & Reminders *</label>
-            <textarea id="bensonNotes" rows="3" placeholder="Add notes, follow-up reminders..."></textarea>
-          </div>
-        </div>
-
         <!-- ACA Health Care Form Section -->
-        <div id="acaSection" style="display: none;">
+        <div id="acaSection">
           <div class="section-divider">1. Client Personal Information</div>
           <div class="form-grid">
             <div>
@@ -643,6 +624,25 @@
           </div>
         </div>
 
+        <!-- Dr. Benson Streamlined Input Section -->
+        <div id="bensonSection" style="display: none;">
+          <div class="section-divider">Dr. Benson Patient & Schedule Info</div>
+          <div class="form-grid">
+            <div style="grid-column: span 2;">
+              <label>Patient Name *</label>
+              <input type="text" id="bensonName" placeholder="Patient full name">
+            </div>
+            <div>
+              <label>Date *</label>
+              <input type="date" id="bensonDate">
+            </div>
+          </div>
+          <div style="margin-top: 15px;">
+            <label>Calendar Notes & Reminders *</label>
+            <textarea id="bensonNotes" rows="3" placeholder="Add notes, follow-up reminders..."></textarea>
+          </div>
+        </div>
+
         <!-- Save Button -->
         <div class="btn-save-container">
           <button type="submit" class="btn-primary" style="background: var(--success);">Save Record</button>
@@ -673,29 +673,8 @@
       </div>
     </div>
 
-    <!-- Dr. Benson Database Records Section -->
-    <div class="dashboard-section" id="bensonTableSection">
-      <h2>Dr. Benson Database Records</h2>
-      <div class="search-bar">
-        <input type="text" id="searchBensonInput" onkeyup="filterBensonTable()" placeholder="🔍 Search Dr. Benson records...">
-      </div>
-      <a href="/api/download-excel" class="btn-export">📥 Download Dr. Benson Records (CSV)</a>
-      <table id="bensonTable">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Patient Name</th>
-            <th>Date</th>
-            <th>Notes & Reminders</th>
-            <th>Agent</th>
-          </tr>
-        </thead>
-        <tbody id="bensonTableBody"></tbody>
-      </table>
-    </div>
-
     <!-- ACA Health Insurance Database Records Section -->
-    <div class="dashboard-section" id="acaTableSection" style="display: none;">
+    <div class="dashboard-section" id="acaTableSection">
       <h2>ACA Health Insurance Database Records</h2>
       <div class="search-bar">
         <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="🔍 Search ACA records...">
@@ -717,6 +696,27 @@
           </tr>
         </thead>
         <tbody id="clientTableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Dr. Benson Database Records Section -->
+    <div class="dashboard-section" id="bensonTableSection" style="display: none;">
+      <h2>Dr. Benson Database Records</h2>
+      <div class="search-bar">
+        <input type="text" id="searchBensonInput" onkeyup="filterBensonTable()" placeholder="🔍 Search Dr. Benson records...">
+      </div>
+      <a href="/api/download-excel" class="btn-export">📥 Download Dr. Benson Records (CSV)</a>
+      <table id="bensonTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Patient Name</th>
+            <th>Date</th>
+            <th>Notes & Reminders</th>
+            <th>Agent</th>
+          </tr>
+        </thead>
+        <tbody id="bensonTableBody"></tbody>
       </table>
     </div>
   </div>
