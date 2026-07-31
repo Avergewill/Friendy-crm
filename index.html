@@ -214,7 +214,7 @@
       border: 1px solid var(--border-color);
       padding: 20px;
       border-radius: 12px;
-      max-width: 450px;
+      max-width: 100%;
     }
 
     .calendar-header {
@@ -228,7 +228,7 @@
     .calendar-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 4px;
+      gap: 6px;
       text-align: center;
       font-size: 12px;
     }
@@ -242,9 +242,14 @@
     .calendar-day {
       background: white;
       border: 1px solid var(--border-color);
-      padding: 8px 0;
+      padding: 12px 4px;
       border-radius: 6px;
       cursor: pointer;
+      min-height: 60px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
     }
 
     .calendar-day:hover {
@@ -252,10 +257,21 @@
     }
 
     .calendar-day.today {
+      border-color: var(--primary);
+      font-weight: bold;
+    }
+
+    .calendar-note-indicator {
       background: var(--primary);
       color: white;
-      font-weight: bold;
-      border-color: var(--primary);
+      font-size: 9px;
+      padding: 1px 4px;
+      border-radius: 4px;
+      margin-top: 4px;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .dashboard-section {
@@ -295,15 +311,6 @@
     .badge-insurance {
       background: #d1fae5;
       color: #065f46;
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
-    }
-
-    .badge-benson {
-      background: #e0f2fe;
-      color: #0369a1;
       padding: 3px 8px;
       border-radius: 4px;
       font-size: 11px;
@@ -530,7 +537,7 @@
       <h2>Add Client & Record</h2>
       <form id="clientForm" onsubmit="addClient(event)">
 
-        <!-- Line of Business Selection (ACA first, Dr. Benson second) -->
+        <!-- Line of Business Selection -->
         <div class="section-divider">Select Line of Business</div>
         <div class="form-grid">
           <div class="full-width">
@@ -634,7 +641,7 @@
             </div>
             <div>
               <label>Date *</label>
-              <input type="date" id="bensonDate">
+              <input type="date" id="bensonDate" onchange="syncBensonDateToCalendar(this.value)">
             </div>
           </div>
           <div style="margin-top: 15px;">
@@ -650,14 +657,14 @@
       </form>
     </div>
 
-    <!-- Schedule & Calendar Widget -->
+    <!-- Schedule & Calendar Widget with Note Editing -->
     <div style="margin-top: 30px;">
-      <h2>Schedule & Calendar</h2>
+      <h2>Schedule & Calendar (Click any day to add/edit notes)</h2>
       <div class="collapsible-header" onclick="toggleCalendarSection()">
         <span>Show / Hide Calendar</span>
         <span id="calToggleIcon">▼</span>
       </div>
-      <div id="calendarContainer" class="collapsible-content">
+      <div id="calendarContainer" class="collapsible-content active">
         <div class="calendar-card">
           <div class="calendar-header">
             <span id="calendarMonthYear">Month Year</span>
@@ -741,6 +748,7 @@
     const socket = io();
     let currentUser = '';
     let navDate = new Date();
+    let calendarNotes = JSON.parse(localStorage.getItem('wyn_calendar_notes') || '{}');
 
     window.onload = function () {
       checkSession();
@@ -875,14 +883,12 @@
         bensonTableSec.style.display = 'block';
         acaTableSec.style.display = 'none';
         
-        // Remove required tags from hidden ACA fields
         document.getElementById('firstName').removeAttribute('required');
         document.getElementById('lastName').removeAttribute('required');
         document.getElementById('phone').removeAttribute('required');
         document.getElementById('healthPlan').removeAttribute('required');
         document.getElementById('insuranceLevel').removeAttribute('required');
 
-        // Add required tags to Dr. Benson fields
         document.getElementById('bensonName').setAttribute('required', 'true');
         document.getElementById('bensonDate').setAttribute('required', 'true');
         document.getElementById('bensonNotes').setAttribute('required', 'true');
@@ -892,12 +898,10 @@
         bensonTableSec.style.display = 'none';
         acaTableSec.style.display = 'block';
 
-        // Remove required tags from hidden Benson fields
         document.getElementById('bensonName').removeAttribute('required');
         document.getElementById('bensonDate').removeAttribute('required');
         document.getElementById('bensonNotes').removeAttribute('required');
 
-        // Add required tags back to ACA fields
         document.getElementById('firstName').setAttribute('required', 'true');
         document.getElementById('lastName').setAttribute('required', 'true');
         document.getElementById('phone').setAttribute('required', 'true');
@@ -952,13 +956,56 @@
       for (let day = 1; day <= totalDays; day++) {
         const dayDiv = document.createElement('div');
         dayDiv.className = 'calendar-day';
-        dayDiv.textContent = day;
+
+        const monthStr = String(month + 1).padStart(2, '0');
+        const dayStr = String(day).padStart(2, '0');
+        const dateKey = `${year}-${monthStr}-${dayStr}`;
+
+        const dayNumberSpan = document.createElement('span');
+        dayNumberSpan.textContent = day;
+        dayDiv.appendChild(dayNumberSpan);
 
         if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
           dayDiv.classList.add('today');
         }
 
+        if (calendarNotes[dateKey]) {
+          const indicator = document.createElement('div');
+          indicator.className = 'calendar-note-indicator';
+          indicator.textContent = calendarNotes[dateKey];
+          dayDiv.appendChild(indicator);
+        }
+
+        dayDiv.onclick = function() {
+          openCalendarNoteModal(dateKey);
+        };
+
         grid.appendChild(dayDiv);
+      }
+    }
+
+    function openCalendarNoteModal(dateKey) {
+      const existingNote = calendarNotes[dateKey] || '';
+      const userNote = prompt(`Calendar Note for ${dateKey}:\n(Enter note or leave blank to delete)`, existingNote);
+      
+      if (userNote !== null) {
+        if (userNote.trim() !== '') {
+          calendarNotes[dateKey] = userNote.trim();
+        } else {
+          delete calendarNotes[dateKey];
+        }
+        localStorage.setItem('wyn_calendar_notes', JSON.stringify(calendarNotes));
+        renderCalendar();
+      }
+    }
+
+    function syncBensonDateToCalendar(dateVal) {
+      if (!dateVal) return;
+      const notesVal = document.getElementById('bensonNotes').value.trim();
+      if (notesVal) {
+        calendarNotes[dateVal] = notesVal;
+        localStorage.setItem('wyn_calendar_notes', JSON.stringify(calendarNotes));
+        renderCalendar();
       }
     }
 
@@ -985,21 +1032,30 @@
       if (lob === 'Dr. Benson') {
         const fullName = document.getElementById('bensonName').value.trim();
         const nameParts = fullName.split(' ');
+        const dateVal = document.getElementById('bensonDate').value;
+        const notesVal = document.getElementById('bensonNotes').value;
+
         newContact = {
           firstName: nameParts[0] || fullName,
           lastName: nameParts.slice(1).join(' ') || '',
           email: 'N/A',
           phone: 'N/A',
-          dob: document.getElementById('bensonDate').value,
+          dob: dateVal,
           lineOfBusiness: 'Dr. Benson',
           healthPlan: 'N/A',
           insuranceLevel: 'N/A',
           premium: '0.00',
-          moreDetails: document.getElementById('bensonNotes').value,
+          moreDetails: notesVal,
           address: 'N/A',
           family: 'N/A',
           user: currentUser
         };
+
+        if (dateVal && notesVal) {
+          calendarNotes[dateVal] = notesVal;
+          localStorage.setItem('wyn_calendar_notes', JSON.stringify(calendarNotes));
+          renderCalendar();
+        }
       } else {
         newContact = {
           firstName: document.getElementById('firstName').value,
@@ -1007,7 +1063,7 @@
           email: document.getElementById('email').value || 'N/A',
           phone: document.getElementById('phone').value,
           dob: document.getElementById('dob').value || 'N/A',
-          lineOfBusiness: document.getElementById('lineOfBusiness').value,
+          lineOfBusiness: lob,
           healthPlan: document.getElementById('healthPlan').value,
           insuranceLevel: document.getElementById('insuranceLevel').value,
           premium: document.getElementById('premium').value || '0.00',
@@ -1026,7 +1082,10 @@
         .then(res => res.json())
         .then(data => {
           if (data.success) {
+            // Keep current selected line of business instead of resetting back to default
+            const currentLob = document.getElementById('lineOfBusiness').value;
             document.getElementById('clientForm').reset();
+            document.getElementById('lineOfBusiness').value = currentLob;
             handleLineOfBusinessChange();
             loadContacts();
           }
