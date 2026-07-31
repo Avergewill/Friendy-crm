@@ -537,31 +537,34 @@
             <input type="tel" id="phone" required placeholder="+1 (555) 000-0000">
           </div>
         </div>
-        
+
         <div class="row mb-3">
   <!-- DOB Field -->
-  <div class="col-md-6">
+  <div class="col-md-4">
     <label for="dob" class="form-label">DOB</label>
     <input type="date" class="form-control" id="dob" required>
   </div>
   
-  <!-- Email Field (Shorter width) -->
-  <div class="col-md-6">
+  <!-- Email Field -->
+  <div class="col-md-4">
     <label for="email" class="form-label">Email Address</label>
-    <input type="email" class="form-control form-control-sm" id="email" placeholder="client@email.com">
+    <input type="email" class="form-control" id="email" placeholder="client@email.com">
+  </div>
+
+  <!-- Address Field -->
+  <div class="col-md-4">
+    <label for="address" class="form-label">Address / Zip Code</label>
+    <input type="text" class="form-control" id="address" placeholder="Street, City, State, Zip">
   </div>
 </div>
 
-        <div class="form-grid" style="margin-top: 10px;">
-          <div class="full-width">
-            <label>Address / Zip Code</label>
-            <input type="text" id="address" placeholder="Street, City, State, Zip">
-          </div>
-          <div class="full-width">
-            <label>Household / Family Notes</label>
-            <textarea id="family" rows="2" placeholder="Notes, household details, beneficiaries..."></textarea>
-          </div>
-        </div>
+<!-- Household / Family Notes Row Below -->
+<div class="mb-3">
+  <label for="family" class="form-label">Household / Family Notes</label>
+  <textarea class="form-control" id="family" rows="2" placeholder="Notes, household details, beneficiaries..."></textarea>
+</div>
+        
+
 
         <div class="section-divider">2. ACA Health Insurance Details</div>
         <div class="form-grid">
