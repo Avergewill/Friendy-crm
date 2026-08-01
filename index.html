@@ -488,6 +488,33 @@
   </style>
 </head>
 
+  <!-- Consent Form Modal Popup -->
+<div id="consentModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.75); justify-content: center; align-items: center; z-index: 4000;">
+  <div style="background: white; padding: 30px; border-radius: 12px; width: 650px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px rgba(0,0,0,0.2);">
+    <h2 style="color: var(--primary-dark); margin-top: 0;">ACA Health Insurance Consent Form</h2>
+    
+    <div id="consentFormContent" style="font-size: 13px; color: #334155; line-height: 1.6; border: 1px solid var(--border-color); padding: 20px; border-radius: 6px; margin-bottom: 15px; background: #f8fafc;">
+      <p><b>Date Issued:</b> <span id="consentDate"></span></p>
+      <p><b>Client Name:</b> <span id="consentClientName" style="font-weight: bold; border-bottom: 1px dashed #94a3b8; padding-bottom: 2px;"></span></p>
+      <br>
+      <p><b>Authorization to Represent & Enroll:</b></p>
+      <p>I hereby designate and authorize the listed agent/broker to act as my agent/broker in assisting with my health insurance application and enrollment through the ACA Marketplace (Affordable Care Act).</p>
+      <p><b>Client Acknowledgment:</b> By signing below, I confirm that the information provided is accurate and that I consent to my agent managing my policy details.</p>
+      <br><br>
+      <div style="display: flex; justify-content: space-between;">
+        <p><b>Client Signature:</b> ___________________________</p>
+        <p><b>Date:</b> ____________</p>
+      </div>
+      <p style="font-size: 11px; color: #64748b; margin-top: 20px; text-align: center;">*(Note: Keep one signed copy for client records and retain the duplicate for your CRM files).*</p>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+      <button type="button" class="btn-primary" style="background: #64748b;" onclick="closeConsentModal()">Close</button>
+      <button type="button" class="btn-primary" onclick="printConsentForm()">🖨️ Print Copies (Client & Records)</button>
+    </div>
+  </div>
+</div>
+  
 <body>
 
   <!-- Login / Authentication Overlay -->
