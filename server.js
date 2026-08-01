@@ -9,6 +9,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// In-memory collections (Note: Data resets on server restart unless linked to a database)
 const users = [];
 const contacts = [];
 let chatHistory = "Welcome to Office Live Chat!\n";
@@ -19,11 +20,15 @@ app.use(session({
   secret: 'wyn-crm-secret-key-2026',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false }
+  cookie: { 
+    secure: false,
+    maxAge: 30 * 24 * 60 * 60 * 1000 // Keeps password & login active for 30 days
+  }
 }));
 
 app.use(express.static(path.join(__dirname)));
 
+// Session verification endpoint
 app.get('/api/session', (req, res) => {
   if (req.session && req.session.user) {
     res.json({ loggedIn: true, user: req.session.user });
@@ -32,11 +37,16 @@ app.get('/api/session', (req, res) => {
   }
 });
 
+// Registration: Regular users need only username & password. Admin needs the Wyn2026 passcode.
 app.post('/register-user', async (req, res) => {
   const { username, password, adminCode } = req.body;
   
-  if (adminCode !== 'Wyn2026') {
-    return res.json({ success: false, message: 'Invalid Admin Code. Use Wyn2026' });
+  let role = 'user';
+  if (adminCode && adminCode.trim() !== '') {
+    if (adminCode !== 'Wyn2026') {
+      return res.json({ success: false, message: 'Invalid Admin Passcode.' });
+    }
+    role = 'admin';
   }
 
   const existingUser = users.find(u => u.username === username);
@@ -45,10 +55,11 @@ app.post('/register-user', async (req, res) => {
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  users.push({ username, password: hashedPassword });
+  users.push({ username, password: hashedPassword, role });
   res.json({ success: true });
 });
 
+// Login
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
   const user = users.find(u => u.username === username);
@@ -62,18 +73,33 @@ app.post('/login', async (req, res) => {
     return res.json({ success: false, message: 'Invalid username or password.' });
   }
 
-  req.session.user = { username };
+  // Save user info and role into the session
+  req.session.user = { username: user.username, role: user.role };
   res.json({ success: true, user: req.session.user });
 });
 
+// Logout
 app.post('/logout', (req, res) => {
   req.session.destroy(() => {
     res.json({ success: true });
   });
 });
 
+// Contacts API (with optional search query filter for the client lookup room)
 app.get('/api/contacts', (req, res) => {
-  res.json(contacts);
+  const search = req.query.search ? req.query.search.toLowerCase() : '';
+  if (!search) {
+    return res.json(contacts);
+  }
+  
+  const filtered = contacts.filter(c => 
+    (c.firstName && c.firstName.toLowerCase().includes(search)) ||
+    (c.lastName && c.lastName.toLowerCase().includes(search)) ||
+    (c.phone && c.phone.includes(search)) ||
+    (c.email && c.email.toLowerCase().includes(search))
+  );
+  
+  res.json(filtered);
 });
 
 app.post('/api/contacts', (req, res) => {
@@ -85,7 +111,12 @@ app.post('/api/contacts', (req, res) => {
   res.json({ success: true, contact: newContact });
 });
 
+// Download Route: Strictly protected for ADMIN ONLY
 app.get('/api/download-excel', (req, res) => {
+  if (!req.session.user || req.session.user.role !== 'admin') {
+    return res.status(403).send('Access Denied. Administrator access required.');
+  }
+
   let csv = 'ID,First Name,Last Name,Email,Phone,DOB,Line of Business,Carrier,Level,Premium,Address,Family Notes,More Details,Agent\n';
   contacts.forEach(c => {
     csv += `"${c.id}","${c.firstName}","${c.lastName}","${c.email}","${c.phone}","${c.dob}","${c.lineOfBusiness}","${c.healthPlan}","${c.insuranceLevel}","${c.premium}","${c.address}","${c.family}","${c.moreDetails}","${c.user}"\n`;
