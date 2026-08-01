@@ -648,7 +648,15 @@
             <label>Calendar Notes & Reminders *</label>
             <textarea id="bensonNotes" rows="3" placeholder="Add notes, follow-up reminders..."></textarea>
           </div>
-        </div>
+        </div> <!-- <-- This closses the "Add Client" contan" container div -->
+        <!-- Client Lookup Room / Directory -->
+<div class="dashboard-section" id="clientLookupRoom" style="margin-top: 30px;">
+    <h2>Client Directory & Lookup</h2>
+    <div class="search-bar">
+        <input type="text" id="clientSearchInput" placeholder="🔍 Search clients by name, phone, email..." onkeyup="searchClients()">
+    </div>
+    <div id="clientResultsList" style="margin-top: 15px;"></div>
+</div>
 
         <!-- Save Button -->
         <div class="btn-save-container">
