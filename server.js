@@ -85,7 +85,7 @@ app.post('/logout', (req, res) => {
   });
 });
 
-// Contacts API (with optional search query filter for the client lookup room)
+// Contacts API with search query filter support for both users & admin
 app.get('/api/contacts', (req, res) => {
   const search = req.query.search ? req.query.search.toLowerCase() : '';
   if (!search) {
@@ -96,7 +96,8 @@ app.get('/api/contacts', (req, res) => {
     (c.firstName && c.firstName.toLowerCase().includes(search)) ||
     (c.lastName && c.lastName.toLowerCase().includes(search)) ||
     (c.phone && c.phone.includes(search)) ||
-    (c.email && c.email.toLowerCase().includes(search))
+    (c.email && c.email.toLowerCase().includes(search)) ||
+    (c.user && c.user.toLowerCase().includes(search))
   );
   
   res.json(filtered);
