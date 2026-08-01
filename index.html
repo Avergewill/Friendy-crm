@@ -209,22 +209,23 @@
       margin-top: 15px;
     }
 
+    /* Compact Calendar Styling */
     .calendar-card {
       background: #f8fafc;
       border: 1px solid var(--border-color);
-      padding: 20px;
+      padding: 15px;
       border-radius: 12px;
-      max-width: 380px; /* Made calendar compact and pop-up friendly */
-      margin: 0 auto;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      max-width: 420px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
     }
 
     .calendar-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 15px;
+      margin-bottom: 10px;
       font-weight: 600;
+      font-size: 14px;
     }
 
     .calendar-grid {
@@ -244,36 +245,48 @@
     .calendar-day {
       background: white;
       border: 1px solid var(--border-color);
-      padding: 8px 2px;
-      border-radius: 4px;
-      cursor: pointer;
-      min-height: 45px;
+      padding: 4px;
+      border-radius: 6px;
+      min-height: 55px;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      align-items: center;
+      justify-content: flex-start;
+      align-items: stretch;
     }
 
     .calendar-day:hover {
-      background: #e2e8f0;
+      border-color: var(--primary);
     }
 
     .calendar-day.today {
       border-color: var(--primary);
-      font-weight: bold;
+      background: #eff6ff;
     }
 
-    .calendar-note-indicator {
-      background: var(--primary);
-      color: white;
-      font-size: 8px;
-      padding: 1px 3px;
-      border-radius: 3px;
-      margin-top: 2px;
-      max-width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+    .day-number {
+      font-weight: bold;
+      font-size: 11px;
+      margin-bottom: 2px;
+      text-align: left;
+      padding-left: 2px;
+    }
+
+    .calendar-note-input {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      font-size: 10px;
+      padding: 2px;
+      resize: none;
+      height: 30px;
+      background: #ffffff;
+      box-sizing: border-box;
+    }
+
+    .calendar-note-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: #fff;
     }
 
     .dashboard-section {
@@ -671,9 +684,9 @@
 
     <!-- Compact Schedule & Calendar Pop-up Section -->
     <div style="margin-top: 30px;">
-      <h2>Schedule & Calendar Pop-up (Click any date cell to make/edit notes)</h2>
+      <h2>Schedule & Calendar Widget (Type notes directly inside any date cell)</h2>
       <div class="collapsible-header" onclick="toggleCalendarSection()">
-        <span>📅 Open / Close Calendar Pop-up</span>
+        <span>📅 Open / Close Compact Calendar</span>
         <span id="calToggleIcon">▼</span>
       </div>
       <div id="calendarContainer" class="collapsible-content">
@@ -990,41 +1003,32 @@
         const dayStr = String(day).padStart(2, '0');
         const dateKey = `${year}-${monthStr}-${dayStr}`;
 
-        const dayNumberSpan = document.createElement('span');
-        dayNumberSpan.textContent = day;
-        dayDiv.appendChild(dayNumberSpan);
-
         if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
           dayDiv.classList.add('today');
         }
 
-        if (calendarNotes[dateKey]) {
-          const indicator = document.createElement('div');
-          indicator.className = 'calendar-note-indicator';
-          indicator.textContent = calendarNotes[dateKey];
-          dayDiv.appendChild(indicator);
-        }
+        const dayNumberSpan = document.createElement('div');
+        dayNumberSpan.className = 'day-number';
+        dayNumberSpan.textContent = day;
+        dayDiv.appendChild(dayNumberSpan);
 
-        dayDiv.onclick = function() {
-          openCalendarNoteModal(dateKey);
+        // Inline Text Input inside each calendar box for direct editing
+        const noteInput = document.createElement('textarea');
+        noteInput.className = 'calendar-note-input';
+        noteInput.placeholder = 'Add note...';
+        noteInput.value = calendarNotes[dateKey] || '';
+        
+        noteInput.oninput = function() {
+          if (noteInput.value.trim() !== '') {
+            calendarNotes[dateKey] = noteInput.value.trim();
+          } else {
+            delete calendarNotes[dateKey];
+          }
+          localStorage.setItem('wyn_calendar_notes', JSON.stringify(calendarNotes));
         };
 
+        dayDiv.appendChild(noteInput);
         grid.appendChild(dayDiv);
-      }
-    }
-
-    function openCalendarNoteModal(dateKey) {
-      const existingNote = calendarNotes[dateKey] || '';
-      const userNote = prompt(`Calendar Note for ${dateKey}:\n(Enter note or leave blank to delete)`, existingNote);
-      
-      if (userNote !== null) {
-        if (userNote.trim() !== '') {
-          calendarNotes[dateKey] = userNote.trim();
-        } else {
-          delete calendarNotes[dateKey];
-        }
-        localStorage.setItem('wyn_calendar_notes', JSON.stringify(calendarNotes));
-        renderCalendar();
       }
     }
 
@@ -1257,7 +1261,7 @@
     }
 
     function checkEnter(event) {
-      if (event.key === 'Enter') 
+      if (event.key === 'Enter') {
         sendMessage();
       }
     }
