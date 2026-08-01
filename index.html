@@ -507,8 +507,8 @@
           <button type="button" class="password-toggle" onclick="togglePassword('regPassword', this)">Show</button>
         </div>
         <div style="margin-bottom: 20px;" class="password-group">
-          <label>Admin Code</label>
-          <input type="password" id="regAdminCode" placeholder="Enter Wyn2026" required autocomplete="off">
+          <label>Admin Code (Optional for Admin Setup)</label>
+          <input type="password" id="regAdminCode" placeholder="Leave blank if regular user" autocomplete="off">
           <button type="button" class="password-toggle" onclick="togglePassword('regAdminCode', this)">Show</button>
         </div>
         <button type="submit" class="btn-primary" style="background: var(--success); width: 100%;">Create Account</button>
@@ -648,15 +648,16 @@
             <label>Calendar Notes & Reminders *</label>
             <textarea id="bensonNotes" rows="3" placeholder="Add notes, follow-up reminders..."></textarea>
           </div>
-        </div> <!-- <-- This closses the "Add Client" contan" container div -->
+        </div>
+
         <!-- Client Lookup Room / Directory -->
-<div class="dashboard-section" id="clientLookupRoom" style="margin-top: 30px;">
-    <h2>Client Directory & Lookup</h2>
-    <div class="search-bar">
-        <input type="text" id="clientSearchInput" placeholder="🔍 Search clients by name, phone, email..." onkeyup="searchClients()">
-    </div>
-    <div id="clientResultsList" style="margin-top: 15px;"></div>
-</div>
+        <div class="dashboard-section" id="clientLookupRoom" style="margin-top: 30px;">
+          <h2>Client Directory & Lookup</h2>
+          <div class="search-bar">
+            <input type="text" id="clientSearchInput" placeholder="🔍 Search clients by name, phone, email..." onkeyup="searchClients()">
+          </div>
+          <div id="clientResultsList" style="margin-top: 15px;"></div>
+        </div>
 
         <!-- Save Button -->
         <div class="btn-save-container">
@@ -694,7 +695,7 @@
       <div class="search-bar">
         <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="🔍 Search ACA records...">
       </div>
-      <a href="/api/download-excel" class="btn-export">📥 Download ACA Records (CSV)</a>
+      <a href="/api/download-excel" id="downloadBtn" class="btn-export" style="display: none;">📥 Download ACA Records (CSV)</a>
       <table id="clientTable">
         <thead>
           <tr>
@@ -720,7 +721,7 @@
       <div class="search-bar">
         <input type="text" id="searchBensonInput" onkeyup="filterBensonTable()" placeholder="🔍 Search Dr. Benson records...">
       </div>
-      <a href="/api/download-excel" class="btn-export">📥 Download Dr. Benson Records (CSV)</a>
+      <a href="/api/download-excel" id="downloadBensonBtn" class="btn-export" style="display: none;">📥 Download Dr. Benson Records (CSV)</a>
       <table id="bensonTable">
         <thead>
           <tr>
@@ -755,6 +756,7 @@
   <script>
     const socket = io();
     let currentUser = '';
+    let currentRole = '';
     let navDate = new Date();
     let calendarNotes = JSON.parse(localStorage.getItem('wyn_calendar_notes') || '{}');
 
@@ -770,9 +772,18 @@
         .then(data => {
           if (data.loggedIn) {
             currentUser = data.user.username;
+            currentRole = data.user.role;
             document.getElementById('displayUsername').textContent = currentUser;
             document.getElementById('loginOverlay').style.display = 'none';
+            
+            // Show download button ONLY for admins
+            if (currentRole === 'admin') {
+              document.getElementById('downloadBtn').style.display = 'inline-flex';
+              document.getElementById('downloadBensonBtn').style.display = 'inline-flex';
+            }
+
             loadContacts();
+            searchClients();
           } else {
             document.getElementById('loginOverlay').style.display = 'flex';
           }
@@ -830,9 +841,17 @@
         .then(data => {
           if (data.success) {
             currentUser = data.user.username;
+            currentRole = data.user.role;
             document.getElementById('displayUsername').textContent = currentUser;
             document.getElementById('loginOverlay').style.display = 'none';
+
+            if (currentRole === 'admin') {
+              document.getElementById('downloadBtn').style.display = 'inline-flex';
+              document.getElementById('downloadBensonBtn').style.display = 'inline-flex';
+            }
+
             loadContacts();
+            searchClients();
           } else {
             const errorDiv = document.getElementById('loginError');
             errorDiv.style.display = 'block';
@@ -1031,6 +1050,59 @@
         .catch(err => console.error('Failed to load contacts', err));
     }
 
+    async function searchClients() {
+      const query = document.getElementById('clientSearchInput').value;
+      try {
+        const response = await fetch(`/api/contacts?search=${encodeURIComponent(query)}`);
+        const clients = await response.json();
+        
+        const container = document.getElementById('clientResultsList');
+        container.innerHTML = '';
+        
+        if (clients.length === 0) {
+          container.innerHTML = '<p style="color: #64748b; font-size: 13px;">No clients found matching your search.</p>';
+          return;
+        }
+        
+        let html = `
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Client Name</th>
+                <th>Contact Info</th>
+                <th>Type</th>
+                <th>Carrier</th>
+                <th>Level</th>
+                <th>Premium</th>
+                <th>Agent</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+        
+        clients.forEach(c => {
+          html += `
+            <tr>
+              <td>#${c.id}</td>
+              <td><b>${c.firstName} ${c.lastName}</b><br><small style="color:#64748b;">DOB: ${c.dob || 'N/A'}</small></td>
+              <td>${c.email || ''}<br>${c.phone || ''}</td>
+              <td><span class="badge-insurance">${c.lineOfBusiness || 'ACA Health Care'}</span></td>
+              <td><b>${c.healthPlan || 'N/A'}</b></td>
+              <td><b>${c.insuranceLevel || 'N/A'}</b></td>
+              <td>$${c.premium || '0.00'}</td>
+              <td>${c.user || 'Admin'}</td>
+            </tr>
+          `;
+        });
+        
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+      } catch (err) {
+        console.error('Error searching clients:', err);
+      }
+    }
+
     function addClient(event) {
       event.preventDefault();
       const lob = document.getElementById('lineOfBusiness').value;
@@ -1090,12 +1162,12 @@
         .then(res => res.json())
         .then(data => {
           if (data.success) {
-            // Keep current selected line of business instead of resetting back to default
             const currentLob = document.getElementById('lineOfBusiness').value;
             document.getElementById('clientForm').reset();
             document.getElementById('lineOfBusiness').value = currentLob;
             handleLineOfBusinessChange();
             loadContacts();
+            searchClients();
           }
         });
     }
