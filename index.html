@@ -214,7 +214,9 @@
       border: 1px solid var(--border-color);
       padding: 20px;
       border-radius: 12px;
-      max-width: 100%;
+      max-width: 380px; /* Made calendar compact and pop-up friendly */
+      margin: 0 auto;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
     }
 
     .calendar-header {
@@ -228,24 +230,24 @@
     .calendar-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 6px;
+      gap: 4px;
       text-align: center;
-      font-size: 12px;
+      font-size: 11px;
     }
 
     .calendar-day-name {
       font-weight: 600;
       color: #64748b;
-      padding: 6px 0;
+      padding: 4px 0;
     }
 
     .calendar-day {
       background: white;
       border: 1px solid var(--border-color);
-      padding: 12px 4px;
-      border-radius: 6px;
+      padding: 8px 2px;
+      border-radius: 4px;
       cursor: pointer;
-      min-height: 60px;
+      min-height: 45px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -264,10 +266,10 @@
     .calendar-note-indicator {
       background: var(--primary);
       color: white;
-      font-size: 9px;
-      padding: 1px 4px;
-      border-radius: 4px;
-      margin-top: 4px;
+      font-size: 8px;
+      padding: 1px 3px;
+      border-radius: 3px;
+      margin-top: 2px;
       max-width: 100%;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -653,6 +655,7 @@
         <!-- Client Lookup Room / Directory -->
         <div class="dashboard-section" id="clientLookupRoom" style="margin-top: 30px;">
           <h2>Client Directory & Lookup</h2>
+          <p style="color: #64748b; font-size: 13px; margin-bottom: 10px;">Search and filter clients across agents instantly:</p>
           <div class="search-bar">
             <input type="text" id="clientSearchInput" placeholder="🔍 Search clients by name, phone, email..." onkeyup="searchClients()">
           </div>
@@ -666,14 +669,14 @@
       </form>
     </div>
 
-    <!-- Schedule & Calendar Widget with Note Editing -->
+    <!-- Compact Schedule & Calendar Pop-up Section -->
     <div style="margin-top: 30px;">
-      <h2>Schedule & Calendar (Click any day to add/edit notes)</h2>
+      <h2>Schedule & Calendar Pop-up (Click any date cell to make/edit notes)</h2>
       <div class="collapsible-header" onclick="toggleCalendarSection()">
-        <span>Show / Hide Calendar</span>
+        <span>📅 Open / Close Calendar Pop-up</span>
         <span id="calToggleIcon">▼</span>
       </div>
-      <div id="calendarContainer" class="collapsible-content active">
+      <div id="calendarContainer" class="collapsible-content">
         <div class="calendar-card">
           <div class="calendar-header">
             <span id="calendarMonthYear">Month Year</span>
@@ -693,7 +696,7 @@
     <div class="dashboard-section" id="acaTableSection">
       <h2>ACA Health Insurance Database Records</h2>
       <div class="search-bar">
-        <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="🔍 Search ACA records...">
+        <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="🔍 Filter ACA records...">
       </div>
       <a href="/api/download-excel" id="downloadBtn" class="btn-export" style="display: none;">📥 Download ACA Records (CSV)</a>
       <table id="clientTable">
@@ -719,7 +722,7 @@
     <div class="dashboard-section" id="bensonTableSection" style="display: none;">
       <h2>Dr. Benson Database Records</h2>
       <div class="search-bar">
-        <input type="text" id="searchBensonInput" onkeyup="filterBensonTable()" placeholder="🔍 Search Dr. Benson records...">
+        <input type="text" id="searchBensonInput" onkeyup="filterBensonTable()" placeholder="🔍 Filter Dr. Benson records...">
       </div>
       <a href="/api/download-excel" id="downloadBensonBtn" class="btn-export" style="display: none;">📥 Download Dr. Benson Records (CSV)</a>
       <table id="bensonTable">
@@ -776,7 +779,6 @@
             document.getElementById('displayUsername').textContent = currentUser;
             document.getElementById('loginOverlay').style.display = 'none';
             
-            // Show download button ONLY for admins
             if (currentRole === 'admin') {
               document.getElementById('downloadBtn').style.display = 'inline-flex';
               document.getElementById('downloadBensonBtn').style.display = 'inline-flex';
@@ -1255,7 +1257,7 @@
     }
 
     function checkEnter(event) {
-      if (event.key === 'Enter') {
+      if (event.key === 'Enter') 
         sendMessage();
       }
     }
