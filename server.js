@@ -4,16 +4,31 @@ const { Server } = require('socket.io');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
 const path = require('path');
+const fs = require('fs');
 const nodemailer = require('nodemailer');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// In-memory collections (Note: Data resets on server restart unless linked to a database)
-const users = [];
-const contacts = [];
-let chatHistory = "Welcome to Office Live Chat!\n";
+// Persistent JSON File Helpers so data doesn't vanish on restart
+function readJSONFile(filename, defaultVal) {
+    if (fs.existsSync(filename)) {
+        try { return JSON.parse(fs.readFileSync(filename, 'utf8')); } catch (e) { return defaultVal; }
+    }
+    return defaultVal;
+}
+
+function writeJSONFile(filename, data) {
+    fs.writeFileSync(filename, JSON.stringify(data, null, 2));
+}
+
+// Persistent Collections
+const users = readJSONFile('users.json', []);
+const contacts = readJSONFile('contacts.json', []);
+let chatHistory = readJSONFile('chats.json', "Welcome to Office Live Chat!\n");
+let sentConsents = readJSONFile('sent-consents.json', []);
+let appointments = readJSONFile('appointments.json', []);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -53,6 +68,7 @@ app.post('/register-user', async (req, res) => {
     }
     const hashedPassword = await bcrypt.hash(password, 10);
     users.push({ username, password: hashedPassword, role });
+    writeJSONFile('users.json', users);
     res.json({ success: true });
 });
 
@@ -67,7 +83,6 @@ app.post('/login', async (req, res) => {
     if (!isPasswordValid) {
         return res.json({ success: false, message: 'Invalid username or password.' });
     }
-    // Save user info and role into the session
     req.session.user = { username: user.username, role: user.role };
     res.json({ success: true, user: req.session.user });
 });
@@ -79,7 +94,7 @@ app.post('/logout', (req, res) => {
     });
 });
 
-// Contacts API with search query filter support for both users & admin
+// Contacts API with search query filter support
 app.get('/api/contacts', (req, res) => {
     const search = req.query.search ? req.query.search.toLowerCase() : '';
     if (!search) {
@@ -98,6 +113,7 @@ app.get('/api/contacts', (req, res) => {
 app.post('/api/contacts', (req, res) => {
     const newContact = { id: contacts.length + 1, ...req.body };
     contacts.push(newContact);
+    writeJSONFile('contacts.json', contacts);
     res.json({ success: true, contact: newContact });
 });
 
@@ -112,9 +128,19 @@ const transporter = nodemailer.createTransport({
     },
 });
 
-// Contact/Consent Form Email Route
+// Consent / Contact Form Email Route with Duplicate Check & Resend Confirmation
 app.post('/api/contact-email', async (req, res) => {
-    const { name, email, message } = req.body;
+    const { name, email, message, forceResend } = req.body;
+
+    const existingEntry = sentConsents.find(c => c.email === email && (Date.now() - c.timestamp < 300000));
+    
+    if (existingEntry && !forceResend) {
+        return res.json({ 
+            success: false, 
+            needsConfirmation: true,
+            message: 'A consent form was already sent to this email recently. Are you sure you want to resend it? (Check if the email address was correct).' 
+        });
+    }
 
     try {
         await transporter.sendMail({
@@ -122,14 +148,51 @@ app.post('/api/contact-email', async (req, res) => {
             to: process.env.RECEIVER_EMAIL,
             subject: 'New Consent / Contact Form Submission',
             text: `Name: ${name}\nEmail: ${email}\nMessage: ${message}`,
-            replyTo: email, // Lets you reply directly to the client from your inbox
+            replyTo: email,
         });
 
-        res.json({ success: true, message: 'Email sent successfully!' });
+        if (!existingEntry) {
+            sentConsents.push({ name, email, timestamp: Date.now() });
+        } else {
+            existingEntry.timestamp = Date.now();
+        }
+        writeJSONFile('sent-consents.json', sentConsents);
+
+        res.json({ 
+            success: true, 
+            message: 'Email sent successfully!', 
+            totalCount: sentConsents.length 
+        });
     } catch (error) {
         console.error('Error sending email:', error);
         res.status(500).json({ success: false, error: 'Failed to send email' });
     }
+});
+
+// Endpoint to fetch the total count of sent consent forms
+app.get('/api/consent-count', (req, res) => {
+    res.json({ totalCount: sentConsents.length });
+});
+
+// Shared Appointments API (DC Benson & ACA visible to all users)
+app.get('/api/appointments', (req, res) => {
+    res.json(appointments);
+});
+
+app.post('/api/appointments', (req, res) => {
+    const { title, date, type, notes, color } = req.body;
+    const newAppointment = { 
+        id: Date.now(), 
+        title, 
+        date, 
+        type, 
+        notes: notes || '', 
+        color: notes ? '#10b981' : (color || '#3b82f6'), // Auto-changes color if note is added
+        createdBy: req.session.user ? req.session.user.username : 'Guest'
+    };
+    appointments.push(newAppointment);
+    writeJSONFile('appointments.json', appointments);
+    res.json({ success: true, appointment: newAppointment });
 });
 
 // Download Route: Strictly protected for ADMIN ONLY
@@ -151,6 +214,7 @@ io.on('connection', (socket) => {
     socket.on('chat-message', (data) => {
         const messageLine = `${data.user}: ${data.text}\n`;
         chatHistory += messageLine;
+        writeJSONFile('chats.json', chatHistory);
         io.emit('chat-message', data);
     });
 });
