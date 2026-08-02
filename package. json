@@ -12,4 +12,12 @@
     "express-session": "^1.17.3",
     "socket.io": "^4.6.1"
   }
+ "dependencies": {
+  "express": "^4.19.2",
+  "express-session": "^1.18.0",
+  "bcryptjs": "^2.4.3",
+  "socket.io": "^4.7.5",
+  "nodemailer": "^6.9.13"
 }
+}
+
