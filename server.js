@@ -251,3 +251,37 @@ io.on('connection', (socket) => {
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+function performWebSearch() {
+      const query = document.getElementById('webSearchInput').value.trim();
+      const resultsContainer = document.getElementById('webSearchResults');
+
+      if (!query) return;
+
+      resultsContainer.style.display = 'block';
+      resultsContainer.innerHTML = 'Searching the web...';
+
+      fetch(`/api/search-web?q=${encodeURIComponent(query)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (!data.success || !data.results.length) {
+            resultsContainer.innerHTML = 'No results found.';
+            return;
+          }
+
+          resultsContainer.innerHTML = data.results.map(item => `
+            <div style="margin-bottom: 12px;">
+              <a href="${item.link}" target="_blank" style="font-weight: 600; color: var(--primary); text-decoration: none;">${item.title}</a>
+              <div style="font-size: 12px; color: #64748b;">${item.snippet}</div>
+            </div>
+          `).join('');
+        })
+        .catch(err => {
+          resultsContainer.innerHTML = 'An error occurred while searching.';
+        });
+    }
+
+    function checkSearchEnter(event) {
+      if (event.key === 'Enter') {
+        performWebSearch();
+      }
+    }
