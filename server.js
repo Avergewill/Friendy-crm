@@ -63,14 +63,14 @@ app.post('/login', (req, res) => {
     req.session.user = { username: sessionUser, isAdmin: Boolean(isAdmin) };
 
     // --- CLOCK FUNCTION / ACTIVITY LOG ---
-    const activityLogs = readData(ACTIVITY_FILE);
     activityLogs.push({
       username: sessionUser,
       action: 'Logged In (Clock-In)',
-      timestamp: 'America/Bogota', // Change to your local timezone (e.g., 'America/New_York')
-      dateStyle: 'medium'
-      tiemStyle: 'medium'
-  })
+      timestamp: new Date().toLocaleString('en-US', {
+        timeZone: 'America/Bogota', // Change to your local timezone (e.g., 'America/New_York')
+        dateStyle: 'medium',
+        timeStyle: 'medium'
+      })
     });
     writeData(ACTIVITY_FILE, activityLogs);
     // -------------------------------------
