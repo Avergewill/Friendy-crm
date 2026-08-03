@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const session = require('express-session');
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
 
 const app = express();
 const server = http.createServer(app);
@@ -217,10 +218,58 @@ app.get('/api/download-excel', (req, res) => {
   res.send(csv);
 });
 
-// Active Users Tracking for Socket.io
+// Web Search API Endpoint
+app.get('/api/search-web', (req, res) => {
+  const query = req.query.q;
+  if (!query) {
+    return res.status(400).json({ success: false, message: 'Search query is required.' });
+  }
+
+  const searchUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json`;
+
+  https.get(searchUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (apiRes) => {
+    let data = '';
+    apiRes.on('data', chunk => data += chunk);
+    apiRes.on('end', () => {
+      try {
+        const parsedData = JSON.parse(data);
+        let results = [];
+
+        if (parsedData.RelatedTopics) {
+          results = parsedData.RelatedTopics
+            .filter(item => item.Text && item.FirstURL)
+            .map(item => ({
+              title: item.Text,
+              link: item.FirstURL,
+              snippet: item.Text
+            }));
+        }
+
+        if (results.length === 0 && parsedData.AbstractText) {
+          results.push({
+            title: query,
+            link: parsedData.AbstractURL || '#',
+            snippet: parsedData.AbstractText
+          });
+        }
+
+        res.json({ success: true, results });
+      } catch (e) {
+        res.status(500).json({ success: false, message: 'Failed to parse search results.' });
+      }
+    });
+  }).on('error', () => {
+    res.status(500).json({ success: false, message: 'Search request failed.' });
+  });
+});
+
+// Socket.io Realtime Chat & Active Users
 const activeUsers = new Map();
+let chatHistory = "Welcome to Office Live Chat!";
 
 io.on('connection', (socket) => {
+  socket.emit('chat-history', chatHistory);
+
   socket.on('register-user', (username) => {
     if (username) {
       activeUsers.set(socket.id, username);
@@ -229,17 +278,22 @@ io.on('connection', (socket) => {
   });
 
   socket.on('chat-message', (data) => {
-    // data: { sender, recipient ('All' or username), text }
     if (data.recipient && data.recipient !== 'All') {
-      // Find recipient socket ID and send privately
       for (let [id, user] of activeUsers.entries()) {
         if (user === data.recipient || user === data.sender) {
           io.to(id).emit('chat-message', data);
         }
       }
     } else {
+      const formattedMsg = `<b>${data.sender}:</b> ${data.text}`;
+      chatHistory += `\n${formattedMsg}`;
       io.emit('chat-message', data);
     }
+  });
+
+  socket.on('clear-chat', () => {
+    chatHistory = "Welcome to Office Live Chat!";
+    io.emit('clear-chat-client');
   });
 
   socket.on('disconnect', () => {
@@ -251,37 +305,3 @@ io.on('connection', (socket) => {
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
-function performWebSearch() {
-      const query = document.getElementById('webSearchInput').value.trim();
-      const resultsContainer = document.getElementById('webSearchResults');
-
-      if (!query) return;
-
-      resultsContainer.style.display = 'block';
-      resultsContainer.innerHTML = 'Searching the web...';
-
-      fetch(`/api/search-web?q=${encodeURIComponent(query)}`)
-        .then(res => res.json())
-        .then(data => {
-          if (!data.success || !data.results.length) {
-            resultsContainer.innerHTML = 'No results found.';
-            return;
-          }
-
-          resultsContainer.innerHTML = data.results.map(item => `
-            <div style="margin-bottom: 12px;">
-              <a href="${item.link}" target="_blank" style="font-weight: 600; color: var(--primary); text-decoration: none;">${item.title}</a>
-              <div style="font-size: 12px; color: #64748b;">${item.snippet}</div>
-            </div>
-          `).join('');
-        })
-        .catch(err => {
-          resultsContainer.innerHTML = 'An error occurred while searching.';
-        });
-    }
-
-    function checkSearchEnter(event) {
-      if (event.key === 'Enter') {
-        performWebSearch();
-      }
-    }
