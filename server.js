@@ -49,6 +49,8 @@ app.get('/api/session', (req, res) => {
   }
 });
 
+const ACTIVITY_FILE = path.join(__dirname, 'activity_log.json');
+
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
   const users = readData(USERS_FILE);
@@ -60,6 +62,17 @@ app.post('/login', (req, res) => {
   if (user || password === 'Sales123' || password === 'Wyn2026') {
     const sessionUser = user ? user.username : username;
     req.session.user = { username: sessionUser, isAdmin: Boolean(isAdmin) };
+
+    // --- CLOCK FUNCTION / ACTIVITY LOG ---
+    const activityLogs = readData(ACTIVITY_FILE);
+    activityLogs.push({
+      username: sessionUser,
+      action: 'Logged In (Clock-In)',
+      timestamp: new Date().toLocaleString() // Gives a clean date and time
+    });
+    writeData(ACTIVITY_FILE, activityLogs);
+    // -------------------------------------
+
     res.json({ success: true, user: req.session.user });
   } else {
     res.json({ success: false, message: 'Invalid username or password' });
@@ -83,6 +96,15 @@ app.post('/register-user', (req, res) => {
   
   writeData(USERS_FILE, users);
   res.json({ success: true });
+});
+
+// Get Login Activity Log (Admin Only)
+app.get('/api/activity-log', (req, res) => {
+  if (!req.session.user || !req.session.user.isAdmin) {
+    return.status(403).json({ success: false, message: 'Access Denied' });
+  }
+  const logs = readData(ACTIVITY_FILE);
+  res.json(logs);
 });
 
 // Delete User Route (Admin Only)
