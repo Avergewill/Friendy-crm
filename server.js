@@ -27,7 +27,7 @@ app.use(session({
 
 // Helper functions for JSON storage
 function readData(file) {
-  if (!fs.existsSync(file)) return {};
+  if (!fs.existsSync(file)) return file === CALENDAR_FILE ? {} : [];
   try {
     const content = fs.readFileSync(file, 'utf8');
     return JSON.parse(content || (file === CALENDAR_FILE ? '{}' : '[]'));
@@ -54,7 +54,7 @@ app.post('/login', (req, res) => {
   const users = readData(USERS_FILE);
   const user = users.find(u => u.username === username && u.password === password);
 
-  // Determine admin privileges (Username 'admin' or password 'Wyn2026' grants admin)
+  // Admin privileges granted if username is 'admin' or password is 'Wyn2026', or if flagged in database
   const isAdmin = (username.toLowerCase() === 'admin' && password === 'Wyn2026') || (user && user.isAdmin);
 
   if (user || password === 'Sales123' || password === 'Wyn2026') {
@@ -91,7 +91,7 @@ app.post('/logout', (req, res) => {
   });
 });
 
-// Calendar Notes API (Shared across all users)
+// Shared Calendar Notes API
 app.get('/api/calendar', (req, res) => {
   const notes = readData(CALENDAR_FILE);
   res.json(notes);
@@ -128,7 +128,7 @@ app.post('/api/contacts', (req, res) => {
   res.json({ success: true, contact: newContact });
 });
 
-// Export to CSV Route (Strictly Admin Only)
+// Export to CSV Route (Admin Only)
 app.get('/api/download-excel', (req, res) => {
   if (!req.session.user || !req.session.user.isAdmin) {
     return res.status(403).send('Access Denied: Only administrators can download client records.');
