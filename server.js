@@ -69,6 +69,18 @@ app.post('/register-user', (req, res) => {
     return res.json({ success: false, message: 'Username already exists' });
   }
 
+  // Save the user along with their auditing/ tracking code freely
+  user.push({
+    username,
+    password,
+    trakingCode: adminCode || 'N/A',
+    registeredAt: new Date (). toISSOtring()
+  });
+
+  writeDate(USER_FILE, user);
+  res.json({ success: true });
+});
+
   users.push({ username, password });
   writeData(USERS_FILE, users);
   res.json({ success: true });
