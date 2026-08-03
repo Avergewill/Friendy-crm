@@ -240,7 +240,6 @@ app.get('/api/search-web', (req, res) => {
       try {
         let results = [];
         
-        // Simple regex-based extraction for DuckDuckGo HTML results
         const resultRegex = /<a class="result__url" href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;
         
         let match;
@@ -249,7 +248,6 @@ app.get('/api/search-web', (req, res) => {
           let title = match[2].replace(/<[^>]*>?/gm, '').trim();
           let snippet = match[3].replace(/<[^>]*>?/gm, '').trim();
 
-          // Clean up DuckDuckGo redirect links if necessary
           if (link.includes('uddg=')) {
             const decodedUrl = decodeURIComponent(link.split('uddg=')[1].split('&')[0]);
             link = decodedUrl;
@@ -259,16 +257,6 @@ app.get('/api/search-web', (req, res) => {
             results.push({ title, link, snippet });
           }
         }
-
-        res.json({ success: true, results });
-      } catch (e) {
-        res.status(500).json({ success: false, message: 'Failed to parse search results.' });
-      }
-    });
-  }).on('error', () => {
-    res.status(500).json({ success: false, message: 'Search request failed.' });
-  });
-});
 
         res.json({ success: true, results });
       } catch (e) {
