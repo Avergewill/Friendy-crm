@@ -485,7 +485,7 @@
       <form id="loginForm" onsubmit="handleLogin(event)">
         <div style="margin-bottom: 15px;">
           <label>Username</label>
-          <input type="text" id="loginUsername" required autocomplete="username" placeholder="Enter username">
+          <input type="text" id="loginUsername" required autocomplete="username" placeholder="Enter username (sales or admin)">
         </div>
         <div style="margin-bottom: 20px;" class="password-group">
           <label>Password</label>
@@ -531,17 +531,13 @@
               onclick="logoutUser()">Sign Out</a></div>
         </div>
       </div>
-      <!-- Separate Client Directory Dashboard Link -->
-      <div>
-        <a href="clients.html" style="background: var(--primary); color: white; padding: 8px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">Client Directory Dashboard</a>
-      </div>
     </div>
 
     <div>
       <h2>Add Client & Record</h2>
       <form id="clientForm" onsubmit="addClient(event)">
 
-        <!-- Line of Business Selection -->
+        <!-- Line of Business Selection (ACA first, Dr. Benson second) -->
         <div class="section-divider">Select Line of Business</div>
         <div class="form-grid">
           <div class="full-width">
@@ -661,30 +657,7 @@
       </form>
     </div>
 
-    <!-- Send Client Consent Form Sender & Counter -->
-    <div style="margin-top: 30px; background: #f8fafc; border: 1px solid var(--border-color); padding: 20px; border-radius: 12px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <h2 style="margin: 0;">Send Client Consent Form</h2>
-        <span style="font-size: 13px; background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 20px; font-weight: 600;">
-          Total Sent: <span id="consentCountDisplay">0</span>
-        </span>
-      </div>
-      <div class="form-grid">
-        <div>
-          <label>Client Name</label>
-          <input type="text" id="clientName" placeholder="John Doe">
-        </div>
-        <div>
-          <label>Client Email</label>
-          <input type="email" id="clientEmail" placeholder="client@example.com">
-        </div>
-        <div style="display: flex; align-items: flex-end;">
-          <button type="button" id="sendEmailBtn" class="btn-primary" style="width: 100%;">Send Consent Form</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Schedule & Calendar Widget with Note Editing (Half-Length & Resizable) -->
+    <!-- Schedule & Calendar Widget -->
     <div style="margin-top: 30px;">
       <h2>Schedule & Calendar (Click any day to add/edit notes)</h2>
       <div class="collapsible-header" onclick="toggleCalendarSection()">
@@ -692,11 +665,6 @@
         <span id="calToggleIcon">▼</span>
       </div>
       <div id="calendarContainer" class="collapsible-content active">
-        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-          <button type="button" class="btn-primary" style="width: 50%;">DC Benson</button>
-          <button type="button" class="btn-primary" style="width: 50%; background: var(--success);">ACA</button>
-        </div>
-        <!-- Resizable calendar box using resize-y & overflow-auto -->
         <div class="calendar-card resize-y overflow-auto" style="min-height: 250px; max-height: 700px;">
           <div class="calendar-header">
             <span id="calendarMonthYear">Month Year</span>
@@ -786,7 +754,6 @@
       checkSession();
       renderCalendar();
       handleLineOfBusinessChange();
-      updateConsentCounter();
     };
 
     function checkSession() {
@@ -843,8 +810,15 @@
 
     function handleLogin(event) {
       event.preventDefault();
-      const username = document.getElementById('loginUsername').value;
-      const password = document.getElementById('loginPassword').value;
+      const username = document.getElementById('loginUsername').value.trim();
+      const password = document.getElementById('loginPassword').value.trim();
+
+      if (password !== 'Sales123' && password !== 'Wyn2026') {
+        const errorDiv = document.getElementById('loginError');
+        errorDiv.style.display = 'block';
+        errorDiv.textContent = 'Invalid password. Use Sales123 or Wyn2026.';
+        return;
+      }
 
       fetch('/login', {
         method: 'POST',
@@ -862,6 +836,18 @@
             const errorDiv = document.getElementById('loginError');
             errorDiv.style.display = 'block';
             errorDiv.textContent = data.message || 'Invalid username or password';
+          }
+        })
+        .catch(() => {
+          if ((username.toLowerCase() === 'admin' && password === 'Wyn2026') || password === 'Sales123') {
+            currentUser = username;
+            document.getElementById('displayUsername').textContent = currentUser;
+            document.getElementById('loginOverlay').style.display = 'none';
+            loadContacts();
+          } else {
+            const errorDiv = document.getElementById('loginError');
+            errorDiv.style.display = 'block';
+            errorDiv.textContent = 'Invalid credentials';
           }
         });
     }
@@ -1054,58 +1040,6 @@
           renderTables(contacts);
         })
         .catch(err => console.error('Failed to load contacts', err));
-    }
-
-    // Consent Form Counter & Email Dispatch with Duplicate-Confirmation Check
-    async function updateConsentCounter() {
-      try {
-        const res = await fetch('/api/consent-count');
-        const data = await res.json();
-        const counterEl = document.getElementById('consentCountDisplay');
-        if (counterEl) {
-          counterEl.innerText = data.totalCount;
-        }
-      } catch (err) {
-        console.error('Could not load consent count', err);
-      }
-    }
-
-    document.getElementById('sendEmailBtn').addEventListener('click', async () => {
-      await sendConsentEmail(false);
-    });
-
-    async function sendConsentEmail(forceResend) {
-      const clientData = {
-        name: document.getElementById('clientName').value,
-        email: document.getElementById('clientEmail').value,
-        message: "Here is your completed consent form copy.",
-        forceResend: forceResend
-      };
-
-      try {
-        const response = await fetch('/api/contact-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(clientData)
-        });
-
-        const result = await response.json();
-        
-        if (result.success) {
-          alert('Consent form successfully sent! Total sent: ' + result.totalCount);
-          updateConsentCounter();
-        } else if (result.needsConfirmation) {
-          const userConfirmed = confirm(result.message);
-          if (userConfirmed) {
-            await sendConsentEmail(true); // Resend forced
-          }
-        } else {
-          alert(result.message || 'Error sending form.');
-        }
-      } catch (error) {
-        console.error('Error:', error);
-        alert('An error occurred while sending the email.');
-      }
     }
 
     function addClient(event) {
