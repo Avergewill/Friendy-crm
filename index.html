@@ -204,21 +204,6 @@
       background: var(--primary-dark);
     }
 
-    .btn-danger {
-      background: var(--danger);
-      color: white;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 600;
-    }
-
-    .btn-danger:hover {
-      background: #dc2626;
-    }
-
     .btn-save-container {
       display: flex;
       justify-content: flex-end;
@@ -539,7 +524,7 @@
         <div>
           <h1>Wyn CRM Dashboard</h1>
           <div class="user-info" style="margin-top: 4px;">Welcome, <b id="displayUsername">Guest</b> | <a
-              onclick="logoutUser()">Sign Out</a></div>
+              onclick="logoutUser()">Clock Out & Sign Out</a></div>
         </div>
       </div>
     </div>
@@ -691,7 +676,7 @@
       </div>
     </div>
 
-    <!-- Admin Section: User Activity (Clock-In) & Management -->
+    <!-- Admin Section: User Activity (Clock-In/Out) & Management -->
     <div class="dashboard-section" id="adminSection" style="display: none;">
       <h2>Admin Control Panel: User Clock & Activity Log</h2>
       <table id="activityLogTable" style="margin-bottom: 25px;">
@@ -830,6 +815,25 @@
         })
         .catch(err => console.error('Error loading activity logs:', err));
     }
+
+    // Real-time listener for live clock-in / clock-out updates
+    socket.on('new-activity', (log) => {
+      if (!isAdmin) return; // Only admins view the activity table
+      const tbody = document.getElementById('activityLogBody');
+      if (!tbody) return;
+
+      if (tbody.innerHTML.includes('Loading logs') || tbody.innerHTML.includes('No activity recorded')) {
+        tbody.innerHTML = '';
+      }
+
+      const newRow = document.createElement('tr');
+      newRow.innerHTML = `
+        <td><b>${log.username}</b></td>
+        <td>${log.action}</td>
+        <td>${log.timestamp}</td>
+      `;
+      tbody.prepend(newRow);
+    });
 
     function togglePassword(fieldId, btn) {
       const input = document.getElementById(fieldId);
