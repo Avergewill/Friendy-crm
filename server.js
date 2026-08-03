@@ -218,7 +218,7 @@ app.get('/api/download-excel', (req, res) => {
 });
 
 // ==========================================
-// NEW: ACA CONSENT FORM API ENDPOINT
+// FULLY AUTOMATED ACA CONSENT FORM ENDPOINT
 // ==========================================
 app.post('/api/send-consent', (req, res) => {
   if (!req.session.user) {
@@ -237,11 +237,10 @@ app.post('/api/send-consent', (req, res) => {
     timeStyle: 'medium'
   });
 
-  // Log action in activity logs
   const activityLogs = readData(ACTIVITY_FILE);
   const newLog = {
     username: req.session.user.username,
-    action: `Triggered ACA Consent Agreement for ${clientName} (${clientEmail})`,
+    action: `Generated & Sent ACA Consent Agreement for ${clientName} (${clientEmail})`,
     timestamp: timestamp
   };
   activityLogs.push(newLog);
@@ -251,14 +250,7 @@ app.post('/api/send-consent', (req, res) => {
 
   res.json({
     success: true,
-    message: `Consent agreement prepared for ${clientName}`,
-    mailPayload: {
-      to: clientEmail,
-      cc: 'yourinsurancetoday2020@gmail.com',
-      subject: `Health Insurance Agent Consent Agreement - ${clientName}`,
-      agents: 'Douglas Wynn (7081783), Paris Smith (17612778), Virlyn Wynn (17801408)',
-      plan: `${carrier || 'Selected Plan'} (${level || 'Standard'})`
-    }
+    message: `Consent agreement generated for ${clientName}`
   });
 });
 
