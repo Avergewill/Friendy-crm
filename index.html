@@ -10,7 +10,7 @@
     :root {
       --primary: #2563eb;
       --primary-dark: #1d4ed8;
-      --bg-color: #f8fafc;Fdr
+      --bg-color: #f8fafc;
       --card-bg: #ffffff;
       --text-color: #1e293b;
       --border-color: #e2e8f0;
@@ -729,18 +729,18 @@
           </div>
         </form>
       </div>
-      
+
       <!-- Web Search Tool Section -->
-    <div class="dashboard-section">
-      <h2>Web Search Tool</h2>
-      <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-        <input type="text" id="webSearchInput" placeholder="Search the web..." style="flex: 1;" onkeypress="checkSearchEnter(event)">
-        <button type="button" onclick="performWebSearch()" class="btn-primary">Search</button>
+      <div class="dashboard-section">
+        <h2>Web Search Tool</h2>
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+          <input type="text" id="webSearchInput" placeholder="Search the web..." style="flex: 1;" onkeypress="checkSearchEnter(event)">
+          <button type="button" onclick="performWebSearch()" class="btn-primary">Search</button>
+        </div>
+        <div id="webSearchResults" style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; display: none;">
+          <!-- Results will appear here -->
+        </div>
       </div>
-      <div id="webSearchResults" style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; display: none;">
-        <!-- Results will appear here -->
-      </div>
-    </div>
 
       <!-- Schedule & Calendar Widget -->
       <div style="margin-top: 30px;">
@@ -846,7 +846,10 @@
   <div class="chat-popup" id="chatPopup">
     <div class="chat-popup-header">
       <span>Office Live Chat</span>
-      <span onclick="toggleChatPopup()">✕</span>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <button type="button" onclick="clearChatRoom()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 11px;">Clear Chat</button>
+        <span onclick="toggleChatPopup()">✕</span>
+      </div>
     </div>
     <div class="chat-recipient-bar">
       <label for="chatRecipient">Send to:</label>
@@ -886,7 +889,6 @@
             document.getElementById('displayUsername').textContent = currentUser + (isAdmin ? ' (Admin)' : '');
             document.getElementById('loginOverlay').style.display = 'none';
             
-            // Register username with socket for active sidebar & DMs
             socket.emit('register-user', currentUser);
 
             if (isAdmin) {
@@ -905,7 +907,7 @@
         });
     }
 
-    // Listen for Active Users list updates
+    // Active Users & Recipient Dropdown Handler
     socket.on('update-active-users', (users) => {
       const listContainer = document.getElementById('activeUsersList');
       const recipientSelect = document.getElementById('chatRecipient');
@@ -917,7 +919,6 @@
         return;
       }
 
-      // Render right-side active user bar items
       listContainer.innerHTML = users.map(u => `
         <div class="active-user-item">
           <div class="status-dot"></div>
@@ -925,7 +926,6 @@
         </div>
       `).join('');
 
-      // Update chat recipient dropdown options
       const currentSelected = recipientSelect.value;
       recipientSelect.innerHTML = `<option value="All">Everyone (Public)</option>` + 
         users.filter(u => u !== currentUser).map(u => `<option value="${u}">Private: ${u}</option>`).join('');
@@ -1389,6 +1389,42 @@
       }
     }
 
+    // Web Search Tool Logic
+    function performWebSearch() {
+      const query = document.getElementById('webSearchInput').value.trim();
+      const resultsContainer = document.getElementById('webSearchResults');
+
+      if (!query) return;
+
+      resultsContainer.style.display = 'block';
+      resultsContainer.innerHTML = 'Searching the web...';
+
+      fetch(`/api/search-web?q=${encodeURIComponent(query)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (!data.success || !data.results.length) {
+            resultsContainer.innerHTML = 'No results found.';
+            return;
+          }
+
+          resultsContainer.innerHTML = data.results.map(item => `
+            <div style="margin-bottom: 12px;">
+              <a href="${item.link}" target="_blank" style="font-weight: 600; color: var(--primary); text-decoration: none;">${item.title}</a>
+              <div style="font-size: 12px; color: #64748b;">${item.snippet}</div>
+            </div>
+          `).join('');
+        })
+        .catch(err => {
+          resultsContainer.innerHTML = 'An error occurred while searching.';
+        });
+    }
+
+    function checkSearchEnter(event) {
+      if (event.key === 'Enter') {
+        performWebSearch();
+      }
+    }
+
     function toggleChatPopup() {
       const popup = document.getElementById('chatPopup');
       popup.classList.toggle('active');
@@ -1402,7 +1438,11 @@
       }
     }
 
-    // Handle incoming chat messages and unread notification badge
+    // Chat History & Notifications
+    socket.on('chat-history', (history) => {
+      document.getElementById('chatLog').innerHTML = `<div class="chat-msg"><i>${history.replace(/\n/g, '<br>')}</i></div>`;
+    });
+
     socket.on('chat-message', (data) => {
       const chatLog = document.getElementById('chatLog');
       
@@ -1413,7 +1453,6 @@
       chatLog.innerHTML += `<div class="${msgClass}"><b>${labelPrefix}${data.sender}:</b> ${data.text}</div>`;
       chatLog.scrollTop = chatLog.scrollHeight;
 
-      // If message is from someone else and chat box is closed, increment unread badge
       if (data.sender !== currentUser && !isChatOpen) {
         unreadCount++;
         const badge = document.getElementById('chatBadge');
@@ -1439,6 +1478,16 @@
         sendMessage();
       }
     }
+
+    function clearChatRoom() {
+      if (confirm('Are you sure you want to clear the office chat history?')) {
+        socket.emit('clear-chat');
+      }
+    }
+
+    socket.on('clear-chat-client', () => {
+      document.getElementById('chatLog').innerHTML = `<div class="chat-msg"><i>Welcome to Office Live Chat!</i></div>`;
+    });
   </script>
 
 </body>
