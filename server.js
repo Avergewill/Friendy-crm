@@ -47,19 +47,25 @@ app.get('/api/session', (req, res) => {
   }
 });
 
-app.post('/login', (req, res) => {
-  const { username, password } = req.body;
+app.post('/register-user', (req, res) => {
+  const { username, password, adminCode } = req.body;
+
   const users = readData(USERS_FILE);
-  const user = users.find(u => u.username === username && u.password === password);
+  if (users.some(u => u.username === username)) {
+    return res.json({ success: false, message: 'Username already exists' });
+  }
 
-  if (user || password === 'Sales123') {
-    const sessionUser = user ? user.username : username;
-    req.session.user = { username: sessionUser };
-    res.json({ success: true, user: req.session.user });
-  } else {
-    res.json({ success: false, message: 'Invalid username or password' });
+  // Save the user along with their auditing/tracking code freely
+  users.push({ 
+    username, 
+    password, 
+    trackingCode: adminCode || 'N/A', 
+    registeredAt: new Date().toISOString() 
+  });
+  
+  writeData(USERS_FILE, users);
+  res.json({ success: true });
 });
-
 app.post('/register-user', (req, res) => {
   const { username, password } = req.body;
 
