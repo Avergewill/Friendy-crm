@@ -772,7 +772,12 @@
 
       <!-- ACA Health Insurance Database Records Section -->
       <div class="dashboard-section" id="acaTableSection">
-        <h2>ACA Health Insurance Database Records</h2>
+        <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+          <h2 style="margin: 0;">ACA Health Insurance Database Records</h2>
+          <button onclick="openTopConsentGenerator()" style="background-color: #059669; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">
+            📋 Generate Consent Form from Selected Client
+          </button>
+        </div>
         <div class="search-bar">
           <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="🔍 Search ACA records...">
         </div>
@@ -790,33 +795,8 @@
               <th>Address & Notes</th>
               <th>More Details</th>
               <th>Agent</th>
-              <th class="border px-4 py-2">Agent</th>
-              <th class="border px-4 py-2">Consent Form</th>
-              // Inside your table rendering function in index.html:
-contacts.forEach(client => {
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td>#${client.id}</td>
-    <td><b>${client.firstName || ''} ${client.lastName || ''}</b><br><small>DOB: ${client.dob || 'N/A'}</small></td>
-    <td>${client.email || 'N/A'}<br>${client.phone || ''}</td>
-    <td>${client.lineOfBusiness || 'ACA Health Care'}</td>
-    <td>${client.healthPlan || 'N/A'}</td>
-    <td>${client.insuranceLevel || 'N/A'}</td>
-    <td>$${client.premium || '0.00'}</td>
-    <td>${client.address || 'N/A'}</td>
-    <td>${client.moreDetails || 'N/A'}</td>
-    <td>${client.user || 'N/A'}</td>
-    <td>
-      <button onclick="triggerACAConsent('${client.firstName || ''} ${client.lastName || ''}', '${client.email || ''}', '${client.healthPlan || 'Selected Plan'}', '${client.insuranceLevel || 'Standard'}')" 
-              style="background-color: #2563eb; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">
-        Send Consent
-      </button>
-   // Fetch and render client records in the table
-document.addEventListener('DOMContentLoaded', () => {
-  fetchContacts();
-  })
-  .catch(err => console.error('Error triggering consent form:', err));
-}
+              <th style="text-align: center;">Consent Sent</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody id="clientTableBody"></tbody>
@@ -1313,7 +1293,8 @@ document.addEventListener('DOMContentLoaded', () => {
           moreDetails: document.getElementById('moreDetails') ? document.getElementById('moreDetails').value || 'N/A' : 'N/A',
           address: document.getElementById('address').value || 'N/A',
           family: document.getElementById('family').value || 'N/A',
-          user: currentUser
+          user: currentUser,
+          consentSent: false
         };
       }
 
@@ -1362,6 +1343,10 @@ document.addEventListener('DOMContentLoaded', () => {
           `;
           bensonBody.appendChild(row);
         } else {
+          const consentStatusBadge = c.consentSent 
+            ? `<span style="color: #059669; font-weight: bold;">Yes</span>` 
+            : `<span style="color: #dc2626; font-weight: bold;">No</span>`;
+
           row.innerHTML = `
             <td>#${c.id}</td>
             <td><b>${c.firstName} ${c.lastName}</b><br><small style="color:#64748b;">DOB: ${c.dob}</small></td>
@@ -1373,10 +1358,92 @@ document.addEventListener('DOMContentLoaded', () => {
             <td>${c.address}<br><small style="color:#64748b;">${c.family}</small></td>
             <td>${c.moreDetails || 'N/A'}</td>
             <td>${c.user}</td>
+            <td style="text-align: center;">${consentStatusBadge}</td>
+            <td>
+              <button onclick="triggerACAConsent('${c.id}', '${c.firstName || ''} ${c.lastName || ''}', '${c.email || ''}', '${c.dob || ''}', '${c.healthPlan || 'Selected Plan'}', '${c.insuranceLevel || 'Standard'}')" 
+                      style="background-color: #2563eb; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">
+                Send Consent
+              </button>
+            </td>
           `;
           acaBody.appendChild(row);
         }
       });
+    }
+
+    function openTopConsentGenerator() {
+      const clientName = prompt("Enter Client Full Name for Consent Form:");
+      if (!clientName) return;
+      
+      const clientEmail = prompt("Enter Client Email Address:");
+      if (!clientEmail) return;
+
+      const clientDob = prompt("Enter Client Date of Birth (DOB):", "mm/dd/yyyy");
+      const carrier = prompt("Enter Health Plan Carrier:", "Molina / Blue Cross");
+      const level = prompt("Enter Insurance Level:", "Silver / Bronze");
+
+      generateAndSendConsent(null, clientName, clientEmail, clientDob, carrier, level);
+    }
+
+    function triggerACAConsent(contactId, clientName, clientEmail, clientDob, carrier, level) {
+      if (!clientEmail || clientEmail === 'client@email.com' || clientEmail.trim() === '') {
+        alert('⚠️ Please update the client email address before sending the consent form.');
+        return;
+      }
+
+      const confirmed = confirm(
+        `Confirm Consent Agreement\n\nClient: ${clientName}\nDOB: ${clientDob}\nEmail: ${clientEmail}\nPlan: ${carrier} (${level})\n\nClick OK to auto-fill and open ready-to-send email.`
+      );
+
+      if (!confirmed) return;
+
+      generateAndSendConsent(contactId, clientName, clientEmail, clientDob, carrier, level);
+    }
+
+    function generateAndSendConsent(contactId, clientName, clientEmail, clientDob, carrier, level) {
+      const subject = `Health Insurance Agent Consent Agreement - ${clientName}`;
+      const agentsList = "Douglas Wynn (7081783), Paris Smith (17612778), Virlyn Wynn (17801408)";
+      const selectedPlanText = `${carrier || 'ACA Health Plan'} (${level || 'Standard'})`;
+
+      const completedConsentBody = `
+Hello ${clientName},
+
+Your health insurance agent/broker consent agreement has been automatically generated with your information for your records and review:
+
+--------------------------------------------------
+CLIENT INFORMATION:
+- Full Name: ${clientName}
+- Date of Birth (DOB): ${clientDob || 'N/A'}
+- Proposed Insurance Plan: ${selectedPlanText}
+
+APPOINTED AGENTS & BROKERS:
+- ${agentsList}
+--------------------------------------------------
+
+AGREEMENT TERMS:
+I give permission to the above-mentioned agent/agency to serve as the health insurance agent for myself and my entire household (if applicable) for enrollment in a Qualified Health Plan offered on the Georgia State-based Exchange (Georgia Access) & the FFM Marketplace (Healthcare.gov) and approved portals.
+
+1. I give permission to access my information for the purpose of helping me complete an application for eligibility and enrollment in a Qualified Health Plan or other insurance affordability programs, such as Medicaid and PeachCare for Kids® (CHIP) or advance tax credits.
+2. I agree that I have been informed and agree with all the disclaimers included in my exchange application.
+3. I understand the plan(s) I am being enrolled in (${selectedPlanText}) and agree that I wish to be enrolled in that plan. I understand I may cancel delegation anytime via Georgia Access (1-888-687-1503) or Healthcare.gov (1-800-318-2596).
+4. Future Assistance: [X] Agent and agency permission to maintain information and change plans in the future without requiring new consent.
+
+If you decide to work with another agent in the future, please contact Douglas Wynn at 888-360-KARE or yourinsurancetoday2020@gmail.com.
+      `.trim();
+
+      if (contactId) {
+        fetch('/api/send-consent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contactId, clientName, clientEmail })
+        })
+        .then(() => {
+          loadContacts();
+        })
+        .catch(err => console.log('Activity logged'));
+      }
+
+      window.location.href = `mailto:${clientEmail}?cc=yourinsurancetoday2020@gmail.com&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(completedConsentBody)}`;
     }
 
     function filterBensonTable() {
