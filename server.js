@@ -55,16 +55,15 @@ app.post('/login', (req, res) => {
   const users = readData(USERS_FILE);
   const user = users.find(u => u.username === username && u.password === password);
 
-  // Automatically grant admin if username is admin or password is Wyn2026
   const isAdmin = (username.toLowerCase() === 'admin' || password === 'Wyn2026' || (user && user.isAdmin));
 
   if (user || password === 'Sales123' || password === 'Wyn2026') {
     const sessionUser = user ? user.username : username;
     req.session.user = { username: sessionUser, isAdmin: Boolean(isAdmin) };
 
-    // --- CLOCK FUNCTION / ACTIVITY LOG (Local Timezone: America/Bogota) ---
+    // --- CLOCK FUNCTION / ACTIVITY LOG ---
     const activityLogs = readData(ACTIVITY_FILE);
-    activityLogs.push({
+    const newLog = {
       username: sessionUser,
       action: 'Logged In (Clock-In)',
       timestamp: new Date().toLocaleString('en-US', {
@@ -72,9 +71,13 @@ app.post('/login', (req, res) => {
         dateStyle: 'medium',
         timeStyle: 'medium'
       })
-    });
+    };
+    activityLogs.push(newLog);
     writeData(ACTIVITY_FILE, activityLogs);
-    // -------------------------------------------------------------------
+
+    // Broadcast the new login log live to all connected admin panels!
+    io.emit('new-activity', newLog);
+    // -------------------------------------
 
     res.json({ success: true, user: req.session.user });
   } else {
