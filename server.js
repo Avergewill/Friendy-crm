@@ -50,22 +50,15 @@ app.get('/api/session', (req, res) => {
   }
 });
 
-app.post('/login', (req, res) => {
-  const { username, password } = req.body;
-  const users = readData(USERS_FILE);
-  const user = users.find(u => u.username === username && u.password === password);
+app.post('/logout', (req, res) => {
+  const sessionUser = req.session.user ? req.session.user.username : null;
 
-  const isAdmin = (username.toLowerCase() === 'admin' || password === 'Wyn2026' || (user && user.isAdmin));
-
-  if (user || password === 'Sales123' || password === 'Wyn2026') {
-    const sessionUser = user ? user.username : username;
-    req.session.user = { username: sessionUser, isAdmin: Boolean(isAdmin) };
-
-    // --- CLOCK FUNCTION / ACTIVITY LOG ---
+  if (sessionUser) {
+    // --- CLOCK-OUT ACTIVITY LOG ---
     const activityLogs = readData(ACTIVITY_FILE);
     const newLog = {
       username: sessionUser,
-      action: 'Logged In (Clock-In)',
+      action: 'Clocked Out',
       timestamp: new Date().toLocaleString('en-US', {
         timeZone: 'America/Bogota',
         dateStyle: 'medium',
@@ -75,14 +68,14 @@ app.post('/login', (req, res) => {
     activityLogs.push(newLog);
     writeData(ACTIVITY_FILE, activityLogs);
 
-    // Broadcast the new login log live to all connected admin panels!
+    // Broadcast live clock-out to the admin panel
     io.emit('new-activity', newLog);
-    // -------------------------------------
-
-    res.json({ success: true, user: req.session.user });
-  } else {
-    res.json({ success: false, message: 'Invalid username or password' });
+    // ----------------------------
   }
+
+  req.session.destroy(() => {
+    res.json({ success: true });
+  });
 });
 
 app.post('/register-user', (req, res) => {
