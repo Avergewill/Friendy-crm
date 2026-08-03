@@ -10,7 +10,7 @@
     :root {
       --primary: #2563eb;
       --primary-dark: #1d4ed8;
-      --bg-color: #f8fafc;
+      --bg-color: #f8fafc;Fdr
       --card-bg: #ffffff;
       --text-color: #1e293b;
       --border-color: #e2e8f0;
@@ -729,6 +729,18 @@
           </div>
         </form>
       </div>
+      
+      <!-- Web Search Tool Section -->
+    <div class="dashboard-section">
+      <h2>Web Search Tool</h2>
+      <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+        <input type="text" id="webSearchInput" placeholder="Search the web..." style="flex: 1;" onkeypress="checkSearchEnter(event)">
+        <button type="button" onclick="performWebSearch()" class="btn-primary">Search</button>
+      </div>
+      <div id="webSearchResults" style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; display: none;">
+        <!-- Results will appear here -->
+      </div>
+    </div>
 
       <!-- Schedule & Calendar Widget -->
       <div style="margin-top: 30px;">
