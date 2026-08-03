@@ -189,6 +189,7 @@ app.post('/api/contacts', (req, res) => {
   const contacts = readData(DATA_FILE);
   const newContact = {
     id: contacts.length ? contacts[contacts.length - 1].id + 1 : 1,
+    consentSent: false, // Default to false until consent form is sent
     ...req.body
   };
   contacts.push(newContact);
@@ -205,10 +206,10 @@ app.get('/api/download-excel', (req, res) => {
   const contacts = readData(DATA_FILE);
   const filteredContacts = contacts.filter(c => (c.lineOfBusiness || 'ACA Health Care') === requestedLob);
 
-  let csv = 'ID,First Name,Last Name,Email,Phone,DOB,Line of Business,Carrier,Level,Premium,Address,Family,More Details,Agent\n';
+  let csv = 'ID,First Name,Last Name,Email,Phone,DOB,Line of Business,Carrier,Level,Premium,Address,Family,More Details,Agent,Consent Sent\n';
   
   filteredContacts.forEach(c => {
-    csv += `"${c.id}","${c.firstName || ''}","${c.lastName || ''}","${c.email || ''}","${c.phone || ''}","${c.dob || ''}","${c.lineOfBusiness || ''}","${c.healthPlan || ''}","${c.insuranceLevel || ''}","${c.premium || ''}","${c.address || ''}","${c.family || ''}","${c.moreDetails || ''}","${c.user || ''}"\n`;
+    csv += `"${c.id}","${c.firstName || ''}","${c.lastName || ''}","${c.email || ''}","${c.phone || ''}","${c.dob || ''}","${c.lineOfBusiness || ''}","${c.healthPlan || ''}","${c.insuranceLevel || ''}","${c.premium || ''}","${c.address || ''}","${c.family || ''}","${c.moreDetails || ''}","${c.user || ''}","${c.consentSent ? 'Yes' : 'No'}"\n`;
   });
 
   const fileName = requestedLob === 'Dr. Benson' ? 'dr_benson_records.csv' : 'aca_health_records.csv';
@@ -218,17 +219,25 @@ app.get('/api/download-excel', (req, res) => {
 });
 
 // ==========================================
-// FULLY AUTOMATED ACA CONSENT FORM ENDPOINT
+// ACA CONSENT FORM ENDPOINT & STATUS UPDATER
 // ==========================================
 app.post('/api/send-consent', (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ success: false, message: 'Unauthorized: Please log in.' });
   }
 
-  const { clientName, clientEmail, carrier, level } = req.body;
+  const { contactId, clientName, clientEmail } = req.body;
 
   if (!clientEmail || clientEmail === 'client@email.com') {
     return res.status(400).json({ success: false, message: 'Invalid client email address.' });
+  }
+
+  // Update contact record to mark consent as sent
+  const contacts = readData(DATA_FILE);
+  const contact = contacts.find(c => c.id == contactId);
+  if (contact) {
+    contact.consentSent = true;
+    writeData(DATA_FILE, contacts);
   }
 
   const timestamp = new Date().toLocaleString('en-US', {
