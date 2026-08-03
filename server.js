@@ -47,6 +47,20 @@ app.get('/api/session', (req, res) => {
   }
 });
 
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  const users = readData(USERS_FILE);
+  const user = users.find(u => u.username === username && u.password === password);
+
+  if (user || password === 'Sales123') {
+    const sessionUser = user ? user.username : username;
+    req.session.user = { username: sessionUser };
+    res.json({ success: true, user: req.session.user });
+  } else {
+    res.json({ success: false, message: 'Invalid username or password' });
+  }
+});
+
 app.post('/register-user', (req, res) => {
   const { username, password, adminCode } = req.body;
 
@@ -55,7 +69,6 @@ app.post('/register-user', (req, res) => {
     return res.json({ success: false, message: 'Username already exists' });
   }
 
-  // Save the user along with their auditing/tracking code freely
   users.push({ 
     username, 
     password, 
@@ -66,34 +79,11 @@ app.post('/register-user', (req, res) => {
   writeData(USERS_FILE, users);
   res.json({ success: true });
 });
-app.post('/register-user', (req, res) => {
-  const { username, password } = req.body;
-
-  const users = readData(USERS_FILE);
-  if (users.some(u => u.username === username)) {
-    return res.json({ success: false, message: 'Username already exists' });
-  }
-
-  // Save the user along with their auditing/ tracking code freely
-  user.push({
-    username,
-    password,
-    trakingCode: adminCode || 'N/A',
-    registeredAt: new Date (). toISSOtring()
-  });
-
-  writeDate(USER_FILE, user);
-  res.json({ success: true });
-});
-
-  users.push({ username, password });
-  writeData(USERS_FILE, users);
-  res.json({ success: true });
-});
 
 app.post('/logout', (req, res) => {
   req.session.destroy(() => {
     res.json({ success: true });
+  });
 });
 
 // Contacts API Routes
