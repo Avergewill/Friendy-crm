@@ -94,7 +94,6 @@ app.post('/register-user', (req, res) => {
 app.post('/logout', (req, res) => {
   req.session.destroy(() => {
     res.json({ success: true });
-  });
 });
 
 // Contacts API Routes
