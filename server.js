@@ -217,6 +217,51 @@ app.get('/api/download-excel', (req, res) => {
   res.send(csv);
 });
 
+// ==========================================
+// NEW: ACA CONSENT FORM API ENDPOINT
+// ==========================================
+app.post('/api/send-consent', (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ success: false, message: 'Unauthorized: Please log in.' });
+  }
+
+  const { clientName, clientEmail, carrier, level } = req.body;
+
+  if (!clientEmail || clientEmail === 'client@email.com') {
+    return res.status(400).json({ success: false, message: 'Invalid client email address.' });
+  }
+
+  const timestamp = new Date().toLocaleString('en-US', {
+    timeZone: 'America/Bogota',
+    dateStyle: 'medium',
+    timeStyle: 'medium'
+  });
+
+  // Log action in activity logs
+  const activityLogs = readData(ACTIVITY_FILE);
+  const newLog = {
+    username: req.session.user.username,
+    action: `Triggered ACA Consent Agreement for ${clientName} (${clientEmail})`,
+    timestamp: timestamp
+  };
+  activityLogs.push(newLog);
+  writeData(ACTIVITY_FILE, activityLogs);
+
+  io.emit('new-activity', newLog);
+
+  res.json({
+    success: true,
+    message: `Consent agreement prepared for ${clientName}`,
+    mailPayload: {
+      to: clientEmail,
+      cc: 'yourinsurancetoday2020@gmail.com',
+      subject: `Health Insurance Agent Consent Agreement - ${clientName}`,
+      agents: 'Douglas Wynn (7081783), Paris Smith (17612778), Virlyn Wynn (17801408)',
+      plan: `${carrier || 'Selected Plan'} (${level || 'Standard'})`
+    }
+  });
+});
+
 // Socket.io Realtime Chat & Active Users
 const activeUsers = new Map();
 let chatHistory = "Welcome to Office Live Chat!";
