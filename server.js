@@ -15,7 +15,6 @@ const USERS_FILE = path.join(__dirname, 'users.json');
 const CALENDAR_FILE = path.join(__dirname, 'calendar.json');
 const ACTIVITY_FILE = path.join(__dirname, 'activity_log.json');
 
-// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
@@ -26,7 +25,6 @@ app.use(session({
   saveUninitialized: false
 }));
 
-// Helper functions for JSON storage
 function readData(file) {
   if (!fs.existsSync(file)) return file === CALENDAR_FILE ? {} : [];
   try {
@@ -41,7 +39,6 @@ function writeData(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
 
-// Authentication Routes
 app.get('/api/session', (req, res) => {
   if (req.session.user) {
     res.json({ loggedIn: true, user: req.session.user });
@@ -55,7 +52,6 @@ app.post('/login', (req, res) => {
   const users = readData(USERS_FILE);
   const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
 
-  // Automatically grant admin if username is admin, wilmer, or password matches master keys
   const isAdmin = (
     username.toLowerCase() === 'admin' || 
     username.toLowerCase() === 'wilmer' || 
@@ -73,7 +69,6 @@ app.post('/login', (req, res) => {
       timeStyle: 'medium'
     });
 
-    // --- CLOCK-IN ACTIVITY LOG ---
     const activityLogs = readData(ACTIVITY_FILE);
     const newLog = {
       username: sessionUser,
@@ -83,15 +78,7 @@ app.post('/login', (req, res) => {
     activityLogs.push(newLog);
     writeData(ACTIVITY_FILE, activityLogs);
 
-    // Broadcast live update to admin panels
     io.emit('new-activity', newLog);
-    // -----------------------------
-
-    // --- CHAT SYSTEM NOTIFICATION ---
-    const systemMsg = `🟢 <b>${sessionUser}</b> has clocked in.`;
-    chatHistory += `\n${systemMsg}`;
-    io.emit('chat-message', { user: 'System', text: systemMsg });
-    // --------------------------------
 
     res.json({ success: true, user: req.session.user });
   } else {
@@ -101,7 +88,6 @@ app.post('/login', (req, res) => {
 
 app.post('/register-user', (req, res) => {
   const { username, password } = req.body;
-
   const users = readData(USERS_FILE);
   if (users.some(u => u.username === username)) {
     return res.json({ success: false, message: 'Username already exists' });
@@ -118,7 +104,6 @@ app.post('/register-user', (req, res) => {
   res.json({ success: true });
 });
 
-// Get Login Activity Log (Admin Only)
 app.get('/api/activity-log', (req, res) => {
   if (!req.session.user || !req.session.user.isAdmin) {
     return res.status(403).json({ success: false, message: 'Access Denied' });
@@ -127,22 +112,18 @@ app.get('/api/activity-log', (req, res) => {
   res.json(logs);
 });
 
-// Delete User Route (Admin Only)
 app.delete('/api/users/:username', (req, res) => {
   if (!req.session.user || !req.session.user.isAdmin) {
     return res.status(403).json({ success: false, message: 'Access Denied: Only administrators can delete users.' });
   }
 
   const targetUsername = req.params.username;
-  
-  // Prevent admin from deleting themselves accidentally
   if (req.session.user.username === targetUsername) {
     return res.status(400).json({ success: false, message: 'You cannot delete your own active account.' });
   }
 
   let users = readData(USERS_FILE);
   const initialLength = users.length;
-  
   users = users.filter(u => u.username !== targetUsername);
 
   if (users.length === initialLength) {
@@ -163,7 +144,6 @@ app.post('/logout', (req, res) => {
       timeStyle: 'medium'
     });
 
-    // --- CLOCK-OUT ACTIVITY LOG ---
     const activityLogs = readData(ACTIVITY_FILE);
     const newLog = {
       username: sessionUser,
@@ -173,15 +153,7 @@ app.post('/logout', (req, res) => {
     activityLogs.push(newLog);
     writeData(ACTIVITY_FILE, activityLogs);
 
-    // Broadcast live clock-out to admin panels
     io.emit('new-activity', newLog);
-    // ----------------------------
-
-    // --- CHAT SYSTEM NOTIFICATION ---
-    const systemMsg = `🔴 <b>${sessionUser}</b> has clocked out.`;
-    chatHistory += `\n${systemMsg}`;
-    io.emit('chat-message', { user: 'System', text: systemMsg });
-    // --------------------------------
   }
 
   req.session.destroy(() => {
@@ -189,7 +161,6 @@ app.post('/logout', (req, res) => {
   });
 });
 
-// Shared Calendar Notes API
 app.get('/api/calendar', (req, res) => {
   const notes = readData(CALENDAR_FILE);
   res.json(notes);
@@ -209,7 +180,6 @@ app.post('/api/calendar', (req, res) => {
   res.json({ success: true, notes });
 });
 
-// Contacts API Routes
 app.get('/api/contacts', (req, res) => {
   const contacts = readData(DATA_FILE);
   res.json(contacts);
@@ -226,7 +196,6 @@ app.post('/api/contacts', (req, res) => {
   res.json({ success: true, contact: newContact });
 });
 
-// Export to CSV Route (Admin Only)
 app.get('/api/download-excel', (req, res) => {
   if (!req.session.user || !req.session.user.isAdmin) {
     return res.status(403).send('Access Denied: Only administrators can download client records.');
@@ -248,16 +217,34 @@ app.get('/api/download-excel', (req, res) => {
   res.send(csv);
 });
 
-// Socket.io Realtime Chat
-let chatHistory = "Welcome to Office Live Chat!";
+// Active Users Tracking for Socket.io
+const activeUsers = new Map();
 
 io.on('connection', (socket) => {
-  socket.emit('chat-history', chatHistory);
+  socket.on('register-user', (username) => {
+    if (username) {
+      activeUsers.set(socket.id, username);
+      io.emit('update-active-users', Array.from(new Set(activeUsers.values())));
+    }
+  });
 
   socket.on('chat-message', (data) => {
-    const formattedMsg = data.user === 'System' ? data.text : `<b>${data.user}:</b> ${data.text}`;
-    chatHistory += `\n${formattedMsg}`;
-    io.emit('chat-message', data);
+    // data: { sender, recipient ('All' or username), text }
+    if (data.recipient && data.recipient !== 'All') {
+      // Find recipient socket ID and send privately
+      for (let [id, user] of activeUsers.entries()) {
+        if (user === data.recipient || user === data.sender) {
+          io.to(id).emit('chat-message', data);
+        }
+      }
+    } else {
+      io.emit('chat-message', data);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    activeUsers.delete(socket.id);
+    io.emit('update-active-users', Array.from(new Set(activeUsers.values())));
   });
 });
 
