@@ -933,9 +933,16 @@
     }
 
     function logoutUser() {
+      // Send logout request first so clock-out logs and broadcasts before reload
       fetch('/logout', { method: 'POST' })
-        .then(() => { location.reload(); })
-        .catch(() => { location.reload(); });
+        .then(() => {
+          setTimeout(() => {
+            location.reload();
+          }, 300);
+        })
+        .catch(() => {
+          location.reload();
+        });
     }
 
     function handleLineOfBusinessChange() {
