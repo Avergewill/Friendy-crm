@@ -67,7 +67,10 @@ app.post('/login', (req, res) => {
     activityLogs.push({
       username: sessionUser,
       action: 'Logged In (Clock-In)',
-      timestamp: new Date().toLocaleString()
+      timestamp: 'America/Bogota', // Change to your local timezone (e.g., 'America/New_York')
+      dateStyle: 'medium'
+      tiemStyle: 'medium'
+  })
     });
     writeData(ACTIVITY_FILE, activityLogs);
     // -------------------------------------
