@@ -218,40 +218,57 @@ app.get('/api/download-excel', (req, res) => {
   res.send(csv);
 });
 
-// Web Search API Endpoint
+// Web Search API Endpoint (HTML Scraping Fallback)
 app.get('/api/search-web', (req, res) => {
   const query = req.query.q;
   if (!query) {
     return res.status(400).json({ success: false, message: 'Search query is required.' });
   }
 
-  const searchUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json`;
+  const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
 
-  https.get(searchUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (apiRes) => {
-    let data = '';
-    apiRes.on('data', chunk => data += chunk);
+  const options = {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    }
+  };
+
+  https.get(searchUrl, options, (apiRes) => {
+    let htmlData = '';
+    apiRes.on('data', chunk => htmlData += chunk);
     apiRes.on('end', () => {
       try {
-        const parsedData = JSON.parse(data);
         let results = [];
+        
+        // Simple regex-based extraction for DuckDuckGo HTML results
+        const resultRegex = /<a class="result__url" href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;
+        
+        let match;
+        while ((match = resultRegex.exec(htmlData)) !== null && results.length < 8) {
+          let link = match[1];
+          let title = match[2].replace(/<[^>]*>?/gm, '').trim();
+          let snippet = match[3].replace(/<[^>]*>?/gm, '').trim();
 
-        if (parsedData.RelatedTopics) {
-          results = parsedData.RelatedTopics
-            .filter(item => item.Text && item.FirstURL)
-            .map(item => ({
-              title: item.Text,
-              link: item.FirstURL,
-              snippet: item.Text
-            }));
+          // Clean up DuckDuckGo redirect links if necessary
+          if (link.includes('uddg=')) {
+            const decodedUrl = decodeURIComponent(link.split('uddg=')[1].split('&')[0]);
+            link = decodedUrl;
+          }
+
+          if (title && link) {
+            results.push({ title, link, snippet });
+          }
         }
 
-        if (results.length === 0 && parsedData.AbstractText) {
-          results.push({
-            title: query,
-            link: parsedData.AbstractURL || '#',
-            snippet: parsedData.AbstractText
-          });
-        }
+        res.json({ success: true, results });
+      } catch (e) {
+        res.status(500).json({ success: false, message: 'Failed to parse search results.' });
+      }
+    });
+  }).on('error', () => {
+    res.status(500).json({ success: false, message: 'Search request failed.' });
+  });
+});
 
         res.json({ success: true, results });
       } catch (e) {
