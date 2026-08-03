@@ -730,18 +730,6 @@
         </form>
       </div>
 
-      <!-- Web Search Tool Section -->
-      <div class="dashboard-section">
-        <h2>Web Search Tool</h2>
-        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-          <input type="text" id="webSearchInput" placeholder="Search the web..." style="flex: 1;" onkeypress="checkSearchEnter(event)">
-          <button type="button" onclick="performWebSearch()" class="btn-primary">Search</button>
-        </div>
-        <div id="webSearchResults" style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; display: none;">
-          <!-- Results will appear here -->
-        </div>
-      </div>
-
       <!-- Schedule & Calendar Widget -->
       <div style="margin-top: 30px;">
         <h2>Schedule & Calendar (Click any day to add/edit notes)</h2>
@@ -907,7 +895,6 @@
         });
     }
 
-    // Active Users & Recipient Dropdown Handler
     socket.on('update-active-users', (users) => {
       const listContainer = document.getElementById('activeUsersList');
       const recipientSelect = document.getElementById('chatRecipient');
@@ -1389,42 +1376,6 @@
       }
     }
 
-    // Web Search Tool Logic
-    function performWebSearch() {
-      const query = document.getElementById('webSearchInput').value.trim();
-      const resultsContainer = document.getElementById('webSearchResults');
-
-      if (!query) return;
-
-      resultsContainer.style.display = 'block';
-      resultsContainer.innerHTML = 'Searching the web...';
-
-      fetch(`/api/search-web?q=${encodeURIComponent(query)}`)
-        .then(res => res.json())
-        .then(data => {
-          if (!data.success || !data.results.length) {
-            resultsContainer.innerHTML = 'No results found.';
-            return;
-          }
-
-          resultsContainer.innerHTML = data.results.map(item => `
-            <div style="margin-bottom: 12px;">
-              <a href="${item.link}" target="_blank" style="font-weight: 600; color: var(--primary); text-decoration: none;">${item.title}</a>
-              <div style="font-size: 12px; color: #64748b;">${item.snippet}</div>
-            </div>
-          `).join('');
-        })
-        .catch(err => {
-          resultsContainer.innerHTML = 'An error occurred while searching.';
-        });
-    }
-
-    function checkSearchEnter(event) {
-      if (event.key === 'Enter') {
-        performWebSearch();
-      }
-    }
-
     function toggleChatPopup() {
       const popup = document.getElementById('chatPopup');
       popup.classList.toggle('active');
@@ -1438,7 +1389,6 @@
       }
     }
 
-    // Chat History & Notifications
     socket.on('chat-history', (history) => {
       document.getElementById('chatLog').innerHTML = `<div class="chat-msg"><i>${history.replace(/\n/g, '<br>')}</i></div>`;
     });
