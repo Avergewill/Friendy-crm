@@ -13,6 +13,7 @@ const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(__dirname, 'contacts.json');
 const USERS_FILE = path.join(__dirname, 'users.json');
 const CALENDAR_FILE = path.join(__dirname, 'calendar.json');
+const ACTIVITY_FILE = path.join(__dirname, 'activity_log.json');
 
 // Middleware
 app.use(express.json());
@@ -49,8 +50,6 @@ app.get('/api/session', (req, res) => {
   }
 });
 
-const ACTIVITY_FILE = path.join(__dirname, 'activity_log.json');
-
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
   const users = readData(USERS_FILE);
@@ -68,7 +67,7 @@ app.post('/login', (req, res) => {
     activityLogs.push({
       username: sessionUser,
       action: 'Logged In (Clock-In)',
-      timestamp: new Date().toLocaleString() // Gives a clean date and time
+      timestamp: new Date().toLocaleString()
     });
     writeData(ACTIVITY_FILE, activityLogs);
     // -------------------------------------
@@ -101,7 +100,7 @@ app.post('/register-user', (req, res) => {
 // Get Login Activity Log (Admin Only)
 app.get('/api/activity-log', (req, res) => {
   if (!req.session.user || !req.session.user.isAdmin) {
-    return.status(403).json({ success: false, message: 'Access Denied' });
+    return res.status(403).json({ success: false, message: 'Access Denied' });
   }
   const logs = readData(ACTIVITY_FILE);
   res.json(logs);
