@@ -4,7 +4,6 @@ const { Server } = require('socket.io');
 const session = require('express-session');
 const path = require('path');
 const fs = require('fs');
-const https = require('https');
 
 const app = express();
 const server = http.createServer(app);
@@ -216,56 +215,6 @@ app.get('/api/download-excel', (req, res) => {
   res.header('Content-Type', 'text/csv');
   res.attachment(fileName);
   res.send(csv);
-});
-
-// Web Search API Endpoint (HTML Scraping Fallback)
-app.get('/api/search-web', (req, res) => {
-  const query = req.query.q;
-  if (!query) {
-    return res.status(400).json({ success: false, message: 'Search query is required.' });
-  }
-
-  const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-
-  const options = {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    }
-  };
-
-  https.get(searchUrl, options, (apiRes) => {
-    let htmlData = '';
-    apiRes.on('data', chunk => htmlData += chunk);
-    apiRes.on('end', () => {
-      try {
-        let results = [];
-        
-        const resultRegex = /<a class="result__url" href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;
-        
-        let match;
-        while ((match = resultRegex.exec(htmlData)) !== null && results.length < 8) {
-          let link = match[1];
-          let title = match[2].replace(/<[^>]*>?/gm, '').trim();
-          let snippet = match[3].replace(/<[^>]*>?/gm, '').trim();
-
-          if (link.includes('uddg=')) {
-            const decodedUrl = decodeURIComponent(link.split('uddg=')[1].split('&')[0]);
-            link = decodedUrl;
-          }
-
-          if (title && link) {
-            results.push({ title, link, snippet });
-          }
-        }
-
-        res.json({ success: true, results });
-      } catch (e) {
-        res.status(500).json({ success: false, message: 'Failed to parse search results.' });
-      }
-    });
-  }).on('error', () => {
-    res.status(500).json({ success: false, message: 'Search request failed.' });
-  });
 });
 
 // Socket.io Realtime Chat & Active Users
