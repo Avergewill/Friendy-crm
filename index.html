@@ -485,7 +485,7 @@
       <form id="loginForm" onsubmit="handleLogin(event)">
         <div style="margin-bottom: 15px;">
           <label>Username</label>
-          <input type="text" id="loginUsername" required autocomplete="username" placeholder="Enter username (sales or admin)">
+          <input type="text" id="loginUsername" required autocomplete="username" placeholder="Enter username (admin or user)">
         </div>
         <div style="margin-bottom: 20px;" class="password-group">
           <label>Password</label>
@@ -495,7 +495,7 @@
         <button type="submit" class="btn-primary" style="width: 100%;">Sign In</button>
       </form>
 
-    <!-- Register Form -->
+      <!-- Register Form -->
       <form id="registerForm" onsubmit="handleRegister(event)" style="display: none;">
         <div style="margin-bottom: 12px;">
           <label>Choose Username</label>
@@ -532,7 +532,7 @@
       <h2>Add Client & Record</h2>
       <form id="clientForm" onsubmit="addClient(event)">
 
-        <!-- Line of Business Selection (ACA first, Dr. Benson second) -->
+        <!-- Line of Business Selection -->
         <div class="section-divider">Select Line of Business</div>
         <div class="form-grid">
           <div class="full-width">
@@ -652,14 +652,14 @@
       </form>
     </div>
 
-    <!-- Schedule & Calendar Widget -->
+    <!-- Schedule & Calendar Widget (Closed by Default) -->
     <div style="margin-top: 30px;">
       <h2>Schedule & Calendar (Click any day to add/edit notes)</h2>
       <div class="collapsible-header" onclick="toggleCalendarSection()">
         <span>Show / Hide Calendar</span>
         <span id="calToggleIcon">▼</span>
       </div>
-      <div id="calendarContainer" class="collapsible-content active">
+      <div id="calendarContainer" class="collapsible-content">
         <div class="calendar-card resize-y overflow-auto" style="min-height: 250px; max-height: 700px;">
           <div class="calendar-header">
             <span id="calendarMonthYear">Month Year</span>
@@ -681,7 +681,7 @@
       <div class="search-bar">
         <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="🔍 Search ACA records...">
       </div>
-      <a href="/api/download-excel" class="btn-export">📥 Download ACA Records (CSV)</a>
+      <div id="acaDownloadContainer"></div>
       <table id="clientTable">
         <thead>
           <tr>
@@ -707,7 +707,7 @@
       <div class="search-bar">
         <input type="text" id="searchBensonInput" onkeyup="filterBensonTable()" placeholder="🔍 Search Dr. Benson records...">
       </div>
-      <a href="/api/download-excel" class="btn-export">📥 Download Dr. Benson Records (CSV)</a>
+      <div id="bensonDownloadContainer"></div>
       <table id="bensonTable">
         <thead>
           <tr>
@@ -742,12 +742,13 @@
   <script>
     const socket = io();
     let currentUser = '';
+    let isAdmin = false;
     let navDate = new Date();
-    let calendarNotes = JSON.parse(localStorage.getItem('wyn_calendar_notes') || '{}');
+    let calendarNotes = {};
 
     window.onload = function () {
       checkSession();
-      renderCalendar();
+      loadCalendarNotes();
       handleLineOfBusinessChange();
     };
 
@@ -757,9 +758,11 @@
         .then(data => {
           if (data.loggedIn) {
             currentUser = data.user.username;
-            document.getElementById('displayUsername').textContent = currentUser;
+            isAdmin = data.user.isAdmin;
+            document.getElementById('displayUsername').textContent = currentUser + (isAdmin ? ' (Admin)' : '');
             document.getElementById('loginOverlay').style.display = 'none';
             loadContacts();
+            loadCalendarNotes();
           } else {
             document.getElementById('loginOverlay').style.display = 'flex';
           }
@@ -808,13 +811,6 @@
       const username = document.getElementById('loginUsername').value.trim();
       const password = document.getElementById('loginPassword').value.trim();
 
-      if (password !== 'Sales123' && password !== 'Wyn2026') {
-        const errorDiv = document.getElementById('loginError');
-        errorDiv.style.display = 'block';
-        errorDiv.textContent = 'Invalid password. Use Sales123 or Wyn2026.';
-        return;
-      }
-
       fetch('/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -824,25 +820,15 @@
         .then(data => {
           if (data.success) {
             currentUser = data.user.username;
-            document.getElementById('displayUsername').textContent = currentUser;
+            isAdmin = data.user.isAdmin;
+            document.getElementById('displayUsername').textContent = currentUser + (isAdmin ? ' (Admin)' : '');
             document.getElementById('loginOverlay').style.display = 'none';
             loadContacts();
+            loadCalendarNotes();
           } else {
             const errorDiv = document.getElementById('loginError');
             errorDiv.style.display = 'block';
             errorDiv.textContent = data.message || 'Invalid username or password';
-          }
-        })
-        .catch(() => {
-          if ((username.toLowerCase() === 'admin' && password === 'Wyn2026') || password === 'Sales123') {
-            currentUser = username;
-            document.getElementById('displayUsername').textContent = currentUser;
-            document.getElementById('loginOverlay').style.display = 'none';
-            loadContacts();
-          } else {
-            const errorDiv = document.getElementById('loginError');
-            errorDiv.style.display = 'block';
-            errorDiv.textContent = 'Invalid credentials';
           }
         });
     }
@@ -851,13 +837,12 @@
       event.preventDefault();
       const username = document.getElementById('regUsername').value;
       const password = document.getElementById('regPassword').value;
-      const adminCode = document.getElementById('regAdminCode').value;
       const errorDiv = document.getElementById('loginError');
 
       fetch('/register-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, adminCode })
+        body: JSON.stringify({ username, password })
       })
         .then(res => res.json())
         .then(data => {
@@ -941,6 +926,31 @@
       icon.textContent = container.classList.contains('active') ? '▲' : '▼';
     }
 
+    function loadCalendarNotes() {
+      fetch('/api/calendar')
+        .then(res => res.json())
+        .then(notes => {
+          calendarNotes = notes;
+          renderCalendar();
+        })
+        .catch(err => console.error('Failed to load calendar notes', err));
+    }
+
+    function saveCalendarNote(dateKey, noteText) {
+      fetch('/api/calendar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dateKey, noteText })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            calendarNotes = data.notes;
+            renderCalendar();
+          }
+        });
+    }
+
     function renderCalendar() {
       const year = navDate.getFullYear();
       const month = navDate.getMonth();
@@ -1003,13 +1013,7 @@
       const userNote = prompt(`Calendar Note for ${dateKey}:\n(Enter note or leave blank to delete)`, existingNote);
       
       if (userNote !== null) {
-        if (userNote.trim() !== '') {
-          calendarNotes[dateKey] = userNote.trim();
-        } else {
-          delete calendarNotes[dateKey];
-        }
-        localStorage.setItem('wyn_calendar_notes', JSON.stringify(calendarNotes));
-        renderCalendar();
+        saveCalendarNote(dateKey, userNote.trim());
       }
     }
 
@@ -1017,9 +1021,7 @@
       if (!dateVal) return;
       const notesVal = document.getElementById('bensonNotes').value.trim();
       if (notesVal) {
-        calendarNotes[dateVal] = notesVal;
-        localStorage.setItem('wyn_calendar_notes', JSON.stringify(calendarNotes));
-        renderCalendar();
+        saveCalendarNote(dateVal, notesVal);
       }
     }
 
@@ -1066,9 +1068,7 @@
         };
 
         if (dateVal && notesVal) {
-          calendarNotes[dateVal] = notesVal;
-          localStorage.setItem('wyn_calendar_notes', JSON.stringify(calendarNotes));
-          renderCalendar();
+          saveCalendarNote(dateVal, notesVal);
         }
       } else {
         newContact = {
@@ -1110,6 +1110,17 @@
       const acaBody = document.getElementById('clientTableBody');
       bensonBody.innerHTML = '';
       acaBody.innerHTML = '';
+
+      // Admin-only download button rendering
+      const acaDownloadContainer = document.getElementById('acaDownloadContainer');
+      const bensonDownloadContainer = document.getElementById('bensonDownloadContainer');
+      acaDownloadContainer.innerHTML = '';
+      bensonDownloadContainer.innerHTML = '';
+
+      if (isAdmin) {
+        acaDownloadContainer.innerHTML = `<a href="/api/download-excel?lob=ACA Health Care" class="btn-export">📥 Download ACA Records (CSV)</a>`;
+        bensonDownloadContainer.innerHTML = `<a href="/api/download-excel?lob=Dr. Benson" class="btn-export">📥 Download Dr. Benson Records (CSV)</a>`;
+      }
 
       contacts.forEach(c => {
         const row = document.createElement('tr');
