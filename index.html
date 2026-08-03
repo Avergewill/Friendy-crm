@@ -15,6 +15,7 @@
       --text-color: #1e293b;
       --border-color: #e2e8f0;
       --success: #10b981;
+      --danger: #ef4444;
     }
 
     body {
@@ -201,6 +202,21 @@
 
     .btn-primary:hover {
       background: var(--primary-dark);
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
     }
 
     .btn-save-container {
@@ -485,7 +501,7 @@
       <form id="loginForm" onsubmit="handleLogin(event)">
         <div style="margin-bottom: 15px;">
           <label>Username</label>
-          <input type="text" id="loginUsername" required autocomplete="username" placeholder="Enter username (admin or user)">
+          <input type="text" id="loginUsername" required autocomplete="username" placeholder="Enter username">
         </div>
         <div style="margin-bottom: 20px;" class="password-group">
           <label>Password</label>
@@ -652,7 +668,7 @@
       </form>
     </div>
 
-    <!-- Schedule & Calendar Widget (Closed by Default) -->
+    <!-- Schedule & Calendar Widget -->
     <div style="margin-top: 30px;">
       <h2>Schedule & Calendar (Click any day to add/edit notes)</h2>
       <div class="collapsible-header" onclick="toggleCalendarSection()">
@@ -673,6 +689,23 @@
           <div class="calendar-grid" id="calendarGrid"></div>
         </div>
       </div>
+    </div>
+
+    <!-- Admin Section: User Activity (Clock-In) & Management -->
+    <div class="dashboard-section" id="adminSection" style="display: none;">
+      <h2>Admin Control Panel: User Clock & Activity Log</h2>
+      <table id="activityLogTable" style="margin-bottom: 25px;">
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Action</th>
+            <th>Timestamp</th>
+          </tr>
+        </thead>
+        <tbody id="activityLogBody">
+          <tr><td colspan="3">Loading logs...</td></tr>
+        </tbody>
+      </table>
     </div>
 
     <!-- ACA Health Insurance Database Records Section -->
@@ -761,6 +794,12 @@
             isAdmin = data.user.isAdmin;
             document.getElementById('displayUsername').textContent = currentUser + (isAdmin ? ' (Admin)' : '');
             document.getElementById('loginOverlay').style.display = 'none';
+            
+            if (isAdmin) {
+              document.getElementById('adminSection').style.display = 'block';
+              loadActivityLogs();
+            }
+
             loadContacts();
             loadCalendarNotes();
           } else {
@@ -770,6 +809,26 @@
         .catch(() => {
           document.getElementById('loginOverlay').style.display = 'flex';
         });
+    }
+
+    function loadActivityLogs() {
+      fetch('/api/activity-log')
+        .then(res => res.json())
+        .then(logs => {
+          const tbody = document.getElementById('activityLogBody');
+          if (!logs.length) {
+            tbody.innerHTML = '<tr><td colspan="3">No activity recorded yet.</td></tr>';
+            return;
+          }
+          tbody.innerHTML = logs.map(log => `
+            <tr>
+              <td><b>${log.username}</b></td>
+              <td>${log.action}</td>
+              <td>${log.timestamp}</td>
+            </tr>
+          `).join('');
+        })
+        .catch(err => console.error('Error loading activity logs:', err));
     }
 
     function togglePassword(fieldId, btn) {
@@ -823,6 +882,12 @@
             isAdmin = data.user.isAdmin;
             document.getElementById('displayUsername').textContent = currentUser + (isAdmin ? ' (Admin)' : '');
             document.getElementById('loginOverlay').style.display = 'none';
+            
+            if (isAdmin) {
+              document.getElementById('adminSection').style.display = 'block';
+              loadActivityLogs();
+            }
+
             loadContacts();
             loadCalendarNotes();
           } else {
@@ -1111,7 +1176,6 @@
       bensonBody.innerHTML = '';
       acaBody.innerHTML = '';
 
-      // Admin-only download button rendering
       const acaDownloadContainer = document.getElementById('acaDownloadContainer');
       const bensonDownloadContainer = document.getElementById('bensonDownloadContainer');
       acaDownloadContainer.innerHTML = '';
