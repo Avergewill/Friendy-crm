@@ -85,6 +85,33 @@ app.post('/register-user', (req, res) => {
   res.json({ success: true });
 });
 
+// Delete User Route (Admin Only)
+app.delete('/api/users/:username', (req, res) => {
+  if (!req.session.user || !req.session.user.isAdmin) {
+    return res.status(403).json({ success: false, message: 'Access Denied: Only administrators can delete users.' });
+  }
+
+  const targetUsername = req.params.username;
+  
+  // Prevent admin from deleting themselves accidentally
+  if (req.session.user.username === targetUsername) {
+    return res.status(400).json({ success: false, message: 'You cannot delete your own active account.' });
+  }
+
+  let users = readData(USERS_FILE);
+  const initialLength = users.length;
+  
+  // Filter out the user to delete
+  users = users.filter(u => u.username !== targetUsername);
+
+  if (users.length === initialLength) {
+    return res.status(404).json({ success: false, message: 'User not found.' });
+  }
+
+  writeData(USERS_FILE, users);
+  res.json({ success: true, message: `User ${targetUsername} successfully deleted.` });
+});
+
 app.post('/logout', (req, res) => {
   req.session.destroy(() => {
     res.json({ success: true });
