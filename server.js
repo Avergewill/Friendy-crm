@@ -189,7 +189,7 @@ app.post('/api/contacts', (req, res) => {
   const contacts = readData(DATA_FILE);
   const newContact = {
     id: contacts.length ? contacts[contacts.length - 1].id + 1 : 1,
-    consentSent: false, // Default to false until consent form is sent
+    consentSent: false,
     ...req.body
   };
   contacts.push(newContact);
@@ -218,9 +218,6 @@ app.get('/api/download-excel', (req, res) => {
   res.send(csv);
 });
 
-// ==========================================
-// ACA CONSENT FORM ENDPOINT & STATUS UPDATER
-// ==========================================
 app.post('/api/send-consent', (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ success: false, message: 'Unauthorized: Please log in.' });
@@ -232,7 +229,6 @@ app.post('/api/send-consent', (req, res) => {
     return res.status(400).json({ success: false, message: 'Invalid client email address.' });
   }
 
-  // Update contact record to mark consent as sent
   const contacts = readData(DATA_FILE);
   const contact = contacts.find(c => c.id == contactId);
   if (contact) {
@@ -257,13 +253,9 @@ app.post('/api/send-consent', (req, res) => {
 
   io.emit('new-activity', newLog);
 
-  res.json({
-    success: true,
-    message: `Consent agreement generated for ${clientName}`
-  });
+  res.json({ success: true, message: `Consent agreement generated for ${clientName}` });
 });
 
-// Socket.io Realtime Chat & Active Users
 const activeUsers = new Map();
 let chatHistory = "Welcome to Office Live Chat!";
 
