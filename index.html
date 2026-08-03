@@ -816,9 +816,9 @@
         .catch(err => console.error('Error loading activity logs:', err));
     }
 
-    // Real-time listener for live clock-in / clock-out updates
+    // Real-time listener for live clock-in / clock-out updates on admin panel
     socket.on('new-activity', (log) => {
-      if (!isAdmin) return; // Only admins view the activity table
+      if (!isAdmin) return;
       const tbody = document.getElementById('activityLogBody');
       if (!tbody) return;
 
@@ -933,7 +933,6 @@
     }
 
     function logoutUser() {
-      // Send logout request first so clock-out logs and broadcasts before reload
       fetch('/logout', { method: 'POST' })
         .then(() => {
           setTimeout(() => {
@@ -1258,9 +1257,16 @@
       document.getElementById('chatLog').innerHTML = `<div class="chat-msg"><i>${history.replace(/\n/g, '<br>')}</i></div>`;
     });
 
+    // Chat message listener with styled system status announcements
     socket.on('chat-message', (data) => {
       const chatLog = document.getElementById('chatLog');
-      chatLog.innerHTML += `<div class="chat-msg"><b>${data.user}:</b> ${data.text}</div>`;
+      
+      if (data.user === 'System') {
+        chatLog.innerHTML += `<div class="chat-msg" style="background: #e2e8f0; color: #334155; width: 100%; text-align: center; font-size: 12px; margin: 4px 0;"><i>${data.text}</i></div>`;
+      } else {
+        chatLog.innerHTML += `<div class="chat-msg"><b>${data.user}:</b> ${data.text}</div>`;
+      }
+      
       chatLog.scrollTop = chatLog.scrollHeight;
     });
 
