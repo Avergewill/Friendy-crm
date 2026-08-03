@@ -62,11 +62,7 @@ app.post('/login', (req, res) => {
 });
 
 app.post('/register-user', (req, res) => {
-  const { username, password, adminCode } = req.body;
-  
-  if (adminCode !== 'Wyn2026') {
-    return res.json({ success: false, message: 'Invalid Admin Code' });
-  }
+  const { username, password } = req.body;
 
   const users = readData(USERS_FILE);
   if (users.some(u => u.username === username)) {
