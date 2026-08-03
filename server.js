@@ -55,7 +55,7 @@ app.post('/login', (req, res) => {
   const user = users.find(u => u.username === username && u.password === password);
 
   // Automatically grant admin if username is admin or password is Wyn2026
-  const isAdmin = (username.toLowerCase() === 'admin' || password === 'Wyn2026');
+  const isAdmin = (username.toLowerCase() === 'admin' || password === 'Wyn2026' || (user && user.isAdmin));
 
   if (user || password === 'Sales123' || password === 'Wyn2026') {
     const sessionUser = user ? user.username : username;
