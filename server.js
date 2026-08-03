@@ -58,7 +58,6 @@ app.post('/login', (req, res) => {
     res.json({ success: true, user: req.session.user });
   } else {
     res.json({ success: false, message: 'Invalid username or password' });
-  }
 });
 
 app.post('/register-user', (req, res) => {
