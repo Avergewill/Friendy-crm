@@ -1,1124 +1,132 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Wyn CRM Dashboard - ACA Health Insurance</title>
-  <script src="/socket.io/socket.io.js"></script>
-  <style>
-    :root {
-      --primary: #2563eb;
-      --primary-dark: #1d4ed8;
-      --bg-color: #f8fafc;
-      --card-bg: #ffffff;
-      --text-color: #1e293b;
-      --border-color: #e2e8f0;
-      --success: #10b981;
-    }
-
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: var(--bg-color);
-      color: var(--text-color);
-      margin: 0;
-      padding: 20px;
-    }
-
-    .container {
-      max-width: 1100px;
-      margin: 0 auto;
-      background: var(--card-bg);
-      padding: 30px;
-      border-radius: 16px;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
-    }
-
-    .header-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 2px solid var(--border-color);
-      padding-bottom: 15px;
-      margin-bottom: 25px;
-    }
-
-    .logo-title {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-
-    .logo-box {
-      width: 45px;
-      height: 45px;
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-      color: white;
-      font-size: 22px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
-    }
-
-    h1 {
-      margin: 0;
-      font-size: 24px;
-      color: var(--text-color);
-    }
-
-    h2 {
-      font-size: 18px;
-      color: #334155;
-      margin-top: 0;
-      margin-bottom: 15px;
-    }
-
-    .user-info {
-      font-size: 14px;
-      color: #64748b;
-    }
-
-    .user-info b {
-      color: var(--text-color);
-    }
-
-    .user-info a {
-      color: #ef4444;
-      text-decoration: none;
-      margin-left: 10px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 15px;
-      margin-bottom: 15px;
-    }
-
-    .full-width {
-      grid-column: span 3;
-    }
-
-    label {
-      display: block;
-      font-weight: 600;
-      font-size: 13px;
-      margin-bottom: 5px;
-      color: #475569;
-    }
-
-    input,
-    select,
-    textarea {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      box-sizing: border-box;
-      font-size: 14px;
-    }
-
-    input:focus,
-    select:focus,
-    textarea:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    }
-
-    .password-group {
-      position: relative;
-    }
-
-    .password-toggle {
-      position: absolute;
-      right: 12px;
-      top: 34px;
-      background: none;
-      border: none;
-      color: #64748b;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 600;
-    }
-
-    .section-divider {
-      background: #f1f5f9;
-      padding: 12px 15px;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 14px;
-      color: #334155;
-      margin: 20px 0 15px 0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-left: 4px solid var(--primary);
-    }
-
-    .collapsible-header {
-      background: #f1f5f9;
-      padding: 12px 15px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 14px;
-      color: #334155;
-      margin-bottom: 15px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      width: 100%;
-      box-sizing: border-box;
-      border: 1px solid var(--border-color);
-    }
-
-    .collapsible-content {
-      display: none;
-      margin-bottom: 15px;
-    }
-
-    .collapsible-content.active {
-      display: block;
-    }
-
-    .btn-primary {
-      background: var(--primary);
-      color: white;
-      border: none;
-      padding: 12px 25px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 14px;
-      transition: background 0.2s;
-    }
-
-    .btn-primary:hover {
-      background: var(--primary-dark);
-    }
-
-    .btn-save-container {
-      display: flex;
-      justify-content: flex-end;
-      margin-top: 15px;
-    }
-
-    .calendar-card {
-      background: #f8fafc;
-      border: 1px solid var(--border-color);
-      padding: 20px;
-      border-radius: 12px;
-      max-width: 450px;
-    }
-
-    .calendar-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      font-weight: 600;
-    }
-
-    .calendar-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 4px;
-      text-align: center;
-      font-size: 12px;
-    }
-
-    .calendar-day-name {
-      font-weight: 600;
-      color: #64748b;
-      padding: 6px 0;
-    }
-
-    .calendar-day {
-      background: white;
-      border: 1px solid var(--border-color);
-      padding: 8px 0;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
-    .calendar-day:hover {
-      background: #e2e8f0;
-    }
-
-    .calendar-day.today {
-      background: var(--primary);
-      color: white;
-      font-weight: bold;
-      border-color: var(--primary);
-    }
-
-    .dashboard-section {
-      margin-top: 35px;
-      border-top: 2px solid var(--border-color);
-      padding-top: 25px;
-    }
-
-    .search-bar {
-      margin-bottom: 15px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-      font-size: 13px;
-    }
-
-    th,
-    td {
-      border: 1px solid var(--border-color);
-      padding: 10px 12px;
-      text-align: left;
-    }
-
-    th {
-      background: #f8fafc;
-      font-weight: 600;
-      color: #334155;
-    }
-
-    tr:hover {
-      background: #f8fafc;
-    }
-
-    .badge-insurance {
-      background: #d1fae5;
-      color: #065f46;
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
-    }
-
-    .badge-benson {
-      background: #e0f2fe;
-      color: #0369a1;
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
-    }
-
-    .btn-export {
-      background: var(--success);
-      color: white;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 10px;
-      text-decoration: none;
-    }
-
-    .btn-export:hover {
-      background: #059669;
-    }
-
-    .login-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(15, 23, 42, 0.75);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 3000;
-    }
-
-    .login-card {
-      background: white;
-      padding: 35px;
-      border-radius: 16px;
-      width: 380px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
-    }
-
-    .login-card h2 {
-      margin-top: 0;
-      margin-bottom: 20px;
-      text-align: center;
-      color: var(--primary);
-    }
-
-    .login-error {
-      color: #ef4444;
-      font-size: 13px;
-      margin-bottom: 12px;
-      text-align: center;
-      display: none;
-    }
-
-    .chat-widget-button {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: var(--primary);
-      color: white;
-      padding: 12px 20px;
-      border-radius: 30px;
-      cursor: pointer;
-      font-weight: 600;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .chat-widget-button:hover {
-      background: var(--primary-dark);
-    }
-
-    .chat-popup {
-      position: fixed;
-      bottom: 80px;
-      right: 20px;
-      width: 320px;
-      background: white;
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-      display: none;
-      flex-direction: column;
-      z-index: 1000;
-      overflow: hidden;
-    }
-
-    .chat-popup.active {
-      display: flex;
-    }
-
-    .chat-popup-header {
-      background: var(--primary);
-      color: white;
-      padding: 12px 15px;
-      font-weight: 600;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .chat-popup-header span {
-      cursor: pointer;
-      font-size: 16px;
-    }
-
-    .chat-box {
-      height: 220px;
-      overflow-y: auto;
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      background: #fdfdfd;
-    }
-
-    .chat-msg {
-      background: #f1f5f9;
-      padding: 6px 10px;
-      border-radius: 6px;
-      font-size: 13px;
-      max-width: 85%;
-    }
-
-    .chat-input-area {
-      display: flex;
-      padding: 10px;
-      border-top: 1px solid var(--border-color);
-      background: #fff;
-      gap: 8px;
-    }
-
-    .chat-input-area input {
-      padding: 8px;
-      font-size: 13px;
-      margin: 0;
-    }
-
-    .chat-input-area button {
-      width: 70px;
-      padding: 8px;
-      font-size: 13px;
-      background: var(--primary);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-  </style>
-</head>
-
-<body>
-
-  <!-- Login / Authentication Overlay -->
-  <div class="login-overlay" id="loginOverlay" style="display: flex;">
-    <div class="login-card">
-      <h2 id="modalTitle">Welcome to Wyn CRM</h2>
-      <div class="login-error" id="loginError"></div>
-
-      <!-- Login Form -->
-      <form id="loginForm" onsubmit="handleLogin(event)">
-        <div style="margin-bottom: 15px;">
-          <label>Username</label>
-          <input type="text" id="loginUsername" required placeholder="Enter username">
-        </div>
-        <div style="margin-bottom: 20px;" class="password-group">
-          <label>Password</label>
-          <input type="password" id="loginPassword" required placeholder="Enter password">
-          <button type="button" class="password-toggle" onclick="togglePassword('loginPassword', this)">Show</button>
-        </div>
-        <button type="submit" class="btn-primary" style="width: 100%;">Sign In</button>
-      </form>
-
-      <!-- Register Form -->
-      <form id="registerForm" onsubmit="handleRegister(event)" style="display: none;">
-        <div style="margin-bottom: 12px;">
-          <label>Choose Username</label>
-          <input type="text" id="regUsername" placeholder="Choose username" required>
-        </div>
-        <div style="margin-bottom: 12px;" class="password-group">
-          <label>Choose Password</label>
-          <input type="password" id="regPassword" placeholder="Choose password" required>
-          <button type="button" class="password-toggle" onclick="togglePassword('regPassword', this)">Show</button>
-        </div>
-        <div style="margin-bottom: 20px;" class="password-group">
-          <label>Admin Code</label>
-          <input type="password" id="regAdminCode" placeholder="Enter Wyn2026" required>
-          <button type="button" class="password-toggle" onclick="togglePassword('regAdminCode', this)">Show</button>
-        </div>
-        <button type="submit" class="btn-primary" style="background: var(--success); width: 100%;">Create
-          Account</button>
-      </form>
-
-      <div style="margin-top: 20px; text-align: center; font-size: 13px;">
-        <a href="#" id="toggleAuthMode" onclick="toggleRegisterMode(event)"
-          style="color: var(--primary); text-decoration: none; font-weight: 600;">Need an account? Register</a>
-      </div>
-    </div>
-  </div>
-
-  <div class="container">
-    <div class="header-top">
-      <div class="logo-title">
-        <div class="logo-box">W</div>
-        <div>
-          <h1>Wyn CRM Dashboard</h1>
-          <div class="user-info" style="margin-top: 4px;">Welcome, <b id="displayUsername">Guest</b> | <a
-              onclick="logoutUser()">Sign Out</a></div>
-        </div>
-      </div>
-    </div>
-
-    <div>
-      <h2>Add Client & Record</h2>
-      <form id="clientForm" onsubmit="addClient(event)">
-
-        <!-- Line of Business Selection (Dr. Benson on top) -->
-        <div class="section-divider">Select Line of Business</div>
-        <div class="form-grid">
-          <div class="full-width">
-            <label>Line of Business *</label>
-            <select id="lineOfBusiness" required onchange="handleLineOfBusinessChange()">
-              <option value="Dr. Benson">Dr. Benson</option>
-              <option value="ACA Health Care">ACA Health Care</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Dr. Benson Streamlined Input Section -->
-        <div id="bensonSection">
-          <div class="section-divider">Dr. Benson Patient & Schedule Info</div>
-          <div class="form-grid">
-            <div style="grid-column: span 2;">
-              <label>Patient Name *</label>
-              <input type="text" id="bensonName" placeholder="Patient full name">
-            </div>
-            <div>
-              <label>Date *</label>
-              <input type="date" id="bensonDate">
-            </div>
-          </div>
-          <div style="margin-top: 15px;">
-            <label>Calendar Notes & Reminders *</label>
-            <textarea id="bensonNotes" rows="3" placeholder="Add notes, follow-up reminders..."></textarea>
-          </div>
-        </div>
-
-        <!-- ACA Health Care Form Section -->
-        <div id="acaSection" style="display: none;">
-          <div class="section-divider">1. Client Personal Information</div>
-          <div class="form-grid">
-            <div>
-              <label>First Name *</label>
-              <input type="text" id="firstName" placeholder="First name">
-            </div>
-            <div>
-              <label>Last Name *</label>
-              <input type="text" id="lastName" placeholder="Last name">
-            </div>
-            <div>
-              <label>Phone Number *</label>
-              <input type="tel" id="phone" placeholder="+1 (555) 000-0000">
-            </div>
-          </div>
-
-          <div class="form-grid" style="margin-top: 15px;">
-            <div>
-              <label for="dob">DOB</label>
-              <input type="date" id="dob">
-            </div>
-            <div>
-              <label for="email">Email Address</label>
-              <input type="email" id="email" placeholder="client@email.com">
-            </div>
-            <div>
-              <label for="address">Address / Zip Code</label>
-              <input type="text" id="address" placeholder="Street, City, State, Zip">
-            </div>
-          </div>
-
-          <div style="margin-top: 15px;">
-            <label for="family">Household / Family Notes</label>
-            <textarea id="family" rows="2" placeholder="Notes, household details, beneficiaries..."></textarea>
-          </div>
-
-          <div class="section-divider">2. ACA Health Insurance Details</div>
-          <div class="form-grid">
-            <div style="grid-column: span 3;">
-              <label>Carrier / Provider *</label>
-              <select id="healthPlan">
-                <option value="">Select Carrier</option>
-                <option value="Molina">Molina</option>
-                <option value="Oscar">Oscar</option>
-                <option value="Blue Cross Blue Shield Of GA">Blue Cross Blue Shield Of GA</option>
-                <option value="Blue Cross Blue Shield">Blue Cross Blue Shield</option>
-                <option value="Alliant">Alliant</option>
-                <option value="Kaiser Virtual">Kaiser Virtual</option>
-                <option value="Kaiser Silver">Kaiser Silver</option>
-                <option value="United Health Care">United Health Care</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-grid" style="margin-top: 10px;">
-            <div>
-              <label>Insurance Level *</label>
-              <select id="insuranceLevel">
-                <option value="">Select Level</option>
-                <option value="Bronze">Bronze</option>
-                <option value="Silver">Silver</option>
-                <option value="Gold">Gold</option>
-                <option value="Platinum">Platinum</option>
-              </select>
-            </div>
-            <div>
-              <label>Monthly Premium ($)</label>
-              <input type="number" step="0.01" id="premium" placeholder="0.00">
-            </div>
-          </div>
-
-          <div style="margin-top: 15px;">
-            <div class="collapsible-header" onclick="toggleMoreDetailsSection()">
-              <span id="moreDetailsToggleText">+ Add More Details / Coverage Notes</span>
-              <span id="moreDetailsToggleIcon">▼</span>
-            </div>
-            <div id="moreDetailsContainer" class="collapsible-content">
-              <label>More Details / Coverage Notes</label>
-              <input type="text" id="moreDetails" placeholder="Subsidy, plan code, remarks...">
-            </div>
-          </div>
-        </div>
-
-        <!-- Save Button -->
-        <div class="btn-save-container">
-          <button type="submit" class="btn-primary" style="background: var(--success);">Save Record</button>
-        </div>
-      </form>
-    </div>
-
-    <!-- Schedule & Calendar Widget -->
-    <div style="margin-top: 30px;">
-      <h2>Schedule & Calendar</h2>
-      <div class="collapsible-header" onclick="toggleCalendarSection()">
-        <span>Show / Hide Calendar</span>
-        <span id="calToggleIcon">▼</span>
-      </div>
-      <div id="calendarContainer" class="collapsible-content">
-        <div class="calendar-card">
-          <div class="calendar-header">
-            <span id="calendarMonthYear">Month Year</span>
-            <div>
-              <button type="button" onclick="changeMonth(-1)"
-                style="border:none; background:#e2e8f0; padding:4px 8px; border-radius:4px; cursor:pointer;">&lt;</button>
-              <button type="button" onclick="changeMonth(1)"
-                style="border:none; background:#e2e8f0; padding:4px 8px; border-radius:4px; cursor:pointer;">&gt;</button>
-            </div>
-          </div>
-          <div class="calendar-grid" id="calendarGrid"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Dr. Benson Database Records Section -->
-    <div class="dashboard-section">
-      <h2>Dr. Benson Database Records</h2>
-      <div class="search-bar">
-        <input type="text" id="searchBensonInput" onkeyup="filterBensonTable()" placeholder="🔍 Search Dr. Benson records...">
-      </div>
-      <table id="bensonTable">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Patient Name</th>
-            <th>Date</th>
-            <th>Notes & Reminders</th>
-            <th>Agent</th>
-          </tr>
-        </thead>
-        <tbody id="bensonTableBody"></tbody>
-      </table>
-    </div>
-
-    <!-- ACA Health Insurance Database Records Section -->
-    <div class="dashboard-section">
-      <h2>ACA Health Insurance Database Records</h2>
-      <div class="search-bar">
-        <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="🔍 Search ACA records...">
-      </div>
-      <a href="/api/download-excel" class="btn-export">📥 Download to Excel (CSV)</a>
-      <table id="clientTable">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Client Name</th>
-            <th>Contact Info</th>
-            <th>Type</th>
-            <th>Carrier</th>
-            <th>Level</th>
-            <th>Premium</th>
-            <th>Address & Notes</th>
-            <th>More Details</th>
-            <th>Agent</th>
-          </tr>
-        </thead>
-        <tbody id="clientTableBody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="chat-widget-button" onclick="toggleChatPopup()">
-    💬 Office Chat
-  </div>
-
-  <div class="chat-popup" id="chatPopup">
-    <div class="chat-popup-header">
-      <span>Office Live Chat</span>
-      <span onclick="toggleChatPopup()">✕</span>
-    </div>
-    <div class="chat-box" id="chatLog"></div>
-    <div class="chat-input-area">
-      <input type="text" id="chatInput" placeholder="Type a message..." onkeypress="checkEnter(event)">
-      <button type="button" onclick="sendMessage()">Send</button>
-    </div>
-  </div>
-
-  <script>
-    const socket = io();
-    let currentUser = '';
-    let navDate = new Date();
-
-    window.onload = function () {
-      checkSession();
-      renderCalendar();
-      handleLineOfBusinessChange();
-    };
-
-    function checkSession() {
-      fetch('/api/session')
-        .then(res => res.json())
-        .then(data => {
-          if (data.loggedIn) {
-            currentUser = data.user.username;
-            document.getElementById('displayUsername').textContent = currentUser;
-            document.getElementById('loginOverlay').style.display = 'none';
-            loadContacts();
-          } else {
-            document.getElementById('loginOverlay').style.display = 'flex';
-          }
-        })
-        .catch(() => {
-          document.getElementById('loginOverlay').style.display = 'flex';
-        });
-    }
-
-    function togglePassword(fieldId, btn) {
-      const input = document.getElementById(fieldId);
-      if (input.type === 'password') {
-        input.type = 'text';
-        btn.textContent = 'Hide';
-      } else {
-        input.type = 'password';
-        btn.textContent = 'Show';
-      }
-    }
-
-    function toggleRegisterMode(event) {
-      event.preventDefault();
-      const loginForm = document.getElementById('loginForm');
-      const regForm = document.getElementById('registerForm');
-      const toggleLink = document.getElementById('toggleAuthMode');
-      const modalTitle = document.getElementById('modalTitle');
-      const errorDiv = document.getElementById('loginError');
-
-      errorDiv.style.display = 'none';
-
-      if (regForm.style.display === 'none') {
-        loginForm.style.display = 'none';
-        regForm.style.display = 'block';
-        toggleLink.textContent = 'Already have an account? Sign In';
-        modalTitle.textContent = 'Register New Account';
-      } else {
-        loginForm.style.display = 'block';
-        regForm.style.display = 'none';
-        toggleLink.textContent = 'Need an account? Register';
-        modalTitle.textContent = 'Welcome to Wyn CRM';
-      }
-    }
-
-    function handleLogin(event) {
-      event.preventDefault();
-      const username = document.getElementById('loginUsername').value;
-      const password = document.getElementById('loginPassword').value;
-
-      fetch('/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            currentUser = data.user.username;
-            document.getElementById('displayUsername').textContent = currentUser;
-            document.getElementById('loginOverlay').style.display = 'none';
-            loadContacts();
-          } else {
-            const errorDiv = document.getElementById('loginError');
-            errorDiv.style.display = 'block';
-            errorDiv.textContent = data.message || 'Invalid username or password';
-          }
-        });
-    }
-
-    function handleRegister(event) {
-      event.preventDefault();
-      const username = document.getElementById('regUsername').value;
-      const password = document.getElementById('regPassword').value;
-      const adminCode = document.getElementById('regAdminCode').value;
-      const errorDiv = document.getElementById('loginError');
-
-      fetch('/register-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, adminCode })
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            errorDiv.style.display = 'block';
-            errorDiv.style.color = 'var(--success)';
-            errorDiv.textContent = 'Account created successfully! Please sign in.';
-            document.getElementById('registerForm').reset();
-            setTimeout(() => {
-              toggleRegisterMode(event);
-              errorDiv.style.display = 'none';
-            }, 1500);
-          } else {
-            errorDiv.style.display = 'block';
-            errorDiv.style.color = '#ef4444';
-            errorDiv.textContent = data.message || 'Registration failed.';
-          }
-        });
-    }
-
-    function logoutUser() {
-      fetch('/logout', { method: 'POST' })
-        .then(() => { location.reload(); })
-        .catch(() => { location.reload(); });
-    }
-
-    function handleLineOfBusinessChange() {
-      const lob = document.getElementById('lineOfBusiness').value;
-      const bensonSection = document.getElementById('bensonSection');
-      const acaSection = document.getElementById('acaSection');
-
-      if (lob === 'Dr. Benson') {
-        bensonSection.style.display = 'block';
-        acaSection.style.display = 'none';
-        
-        // Remove required tags from hidden ACA fields
-        document.getElementById('firstName').removeAttribute('required');
-        document.getElementById('lastName').removeAttribute('required');
-        document.getElementById('phone').removeAttribute('required');
-        document.getElementById('healthPlan').removeAttribute('required');
-        document.getElementById('insuranceLevel').removeAttribute('required');
-
-        // Add required tags to Dr. Benson fields
-        document.getElementById('bensonName').setAttribute('required', 'true');
-        document.getElementById('bensonDate').setAttribute('required', 'true');
-        document.getElementById('bensonNotes').setAttribute('required', 'true');
-      } else {
-        bensonSection.style.display = 'none';
-        acaSection.style.display = 'block';
-
-        // Remove required tags from hidden Benson fields
-        document.getElementById('bensonName').removeAttribute('required');
-        document.getElementById('bensonDate').removeAttribute('required');
-        document.getElementById('bensonNotes').removeAttribute('required');
-
-        // Add required tags back to ACA fields
-        document.getElementById('firstName').setAttribute('required', 'true');
-        document.getElementById('lastName').setAttribute('required', 'true');
-        document.getElementById('phone').setAttribute('required', 'true');
-        document.getElementById('healthPlan').setAttribute('required', 'true');
-        document.getElementById('insuranceLevel').setAttribute('required', 'true');
-      }
-    }
-
-    function toggleMoreDetailsSection() {
-      const container = document.getElementById('moreDetailsContainer');
-      const text = document.getElementById('moreDetailsToggleText');
-      const icon = document.getElementById('moreDetailsToggleIcon');
-      container.classList.toggle('active');
-      const isOpen = container.classList.contains('active');
-      text.textContent = isOpen ? 'Hide More Details / Coverage Notes' : '+ Add More Details / Coverage Notes';
-      icon.textContent = isOpen ? '▲' : '▼';
-    }
-
-    function toggleCalendarSection() {
-      const container = document.getElementById('calendarContainer');
-      const icon = document.getElementById('calToggleIcon');
-      container.classList.toggle('active');
-      icon.textContent = container.classList.contains('active') ? '▲' : '▼';
-    }
-
-    function renderCalendar() {
-      const year = navDate.getFullYear();
-      const month = navDate.getMonth();
-
-      const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-      document.getElementById('calendarMonthYear').textContent = `${months[month]} ${year}`;
-
-      const grid = document.getElementById('calendarGrid');
-      grid.innerHTML = '';
-
-      const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-      dayNames.forEach(d => {
-        const div = document.createElement('div');
-        div.className = 'calendar-day-name';
-        div.textContent = d;
-        grid.appendChild(div);
-      });
-
-      const firstDayIndex = new Date(year, month, 1).getDay();
-      const totalDays = new Date(year, month + 1, 0).getDate();
-      const today = new Date();
-
-      for (let i = 0; i < firstDayIndex; i++) {
-        grid.appendChild(document.createElement('div'));
-      }
-
-      for (let day = 1; day <= totalDays; day++) {
-        const dayDiv = document.createElement('div');
-        dayDiv.className = 'calendar-day';
-        dayDiv.textContent = day;
-
-        if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
-          dayDiv.classList.add('today');
-        }
-
-        grid.appendChild(dayDiv);
-      }
-    }
-
-    function changeMonth(dir) {
-      navDate.setMonth(navDate.getMonth() + dir);
-      renderCalendar();
-    }
-
-    function loadContacts() {
-      fetch('/api/contacts')
-        .then(res => res.json())
-        .then(contacts => {
-          renderTables(contacts);
-        })
-        .catch(err => console.error('Failed to load contacts', err));
-    }
-
-    function addClient(event) {
-      event.preventDefault();
-      const lob = document.getElementById('lineOfBusiness').value;
-
-      let newContact = {};
-
-      if (lob === 'Dr. Benson') {
-        const fullName = document.getElementById('bensonName').value.trim();
-        const nameParts = fullName.split(' ');
-        newContact = {
-          firstName: nameParts[0] || fullName,
-          lastName: nameParts.slice(1).join(' ') || '',
-          email: 'N/A',
-          phone: 'N/A',
-          dob: document.getElementById('bensonDate').value,
-          lineOfBusiness: 'Dr. Benson',
-          healthPlan: 'N/A',
-          insuranceLevel: 'N/A',
-          premium: '0.00',
-          moreDetails: document.getElementById('bensonNotes').value,
-          address: 'N/A',
-          family: 'N/A',
-          user: currentUser
-        };
-      } else {
-        newContact = {
-          firstName: document.getElementById('firstName').value,
-          lastName: document.getElementById('lastName').value,
-          email: document.getElementById('email').value || 'N/A',
-          phone: document.getElementById('phone').value,
-          dob: document.getElementById('dob').value || 'N/A',
-          lineOfBusiness: document.getElementById('lineOfBusiness').value,
-          healthPlan: document.getElementById('healthPlan').value,
-          insuranceLevel: document.getElementById('insuranceLevel').value,
-          premium: document.getElementById('premium').value || '0.00',
-          moreDetails: document.getElementById('moreDetails') ? document.getElementById('moreDetails').value || 'N/A' : 'N/A',
-          address: document.getElementById('address').value || 'N/A',
-          family: document.getElementById('family').value || 'N/A',
-          user: currentUser
-        };
-      }
-
-      fetch('/api/contacts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newContact)
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            document.getElementById('clientForm').reset();
-            handleLineOfBusinessChange();
-            loadContacts();
-          }
-        });
-    }
-
-    function renderTables(contacts) {
-      const bensonBody = document.getElementById('bensonTableBody');
-      const acaBody = document.getElementById('clientTableBody');
-      bensonBody.innerHTML = '';
-      acaBody.innerHTML = '';
-
-      contacts.forEach(c => {
-        const row = document.createElement('tr');
-        if (c.lineOfBusiness === 'Dr. Benson') {
-          row.innerHTML = `
-            <td>#${c.id}</td>
-            <td><b>${c.firstName} ${c.lastName}</b></td>
-            <td>${c.dob}</td>
-            <td>${c.moreDetails}</td>
-            <td>${c.user}</td>
-          `;
-          bensonBody.appendChild(row);
-        } else {
-          row.innerHTML = `
-            <td>#${c.id}</td>
-            <td><b>${c.firstName} ${c.lastName}</b><br><small style="color:#64748b;">DOB: ${c.dob}</small></td>
-            <td>${c.email}<br>${c.phone}</td>
-            <td><span class="badge-insurance">${c.lineOfBusiness || 'ACA Health Care'}</span></td>
-            <td><b>${c.healthPlan || 'N/A'}</b></td>
-            <td><b>${c.insuranceLevel || 'N/A'}</b></td>
-            <td>$${c.premium || '0.00'}</td>
-            <td>${c.address}<br><small style="color:#64748b;">${c.family}</small></td>
-            <td>${c.moreDetails || 'N/A'}</td>
-            <td>${c.user}</td>
-          `;
-          acaBody.appendChild(row);
-        }
-      });
-    }
-
-    function filterBensonTable() {
-      let input = document.getElementById('searchBensonInput');
-      let filter = input.value.toLowerCase();
-      let table = document.getElementById('bensonTable');
-      let tr = table.getElementsByTagName('tr');
-
-      for (let i = 1; i < tr.length; i++) {
-        let tdText = tr[i].textContent || tr[i].innerText;
-        tr[i].style.display = tdText.toLowerCase().indexOf(filter) > -1 ? "" : "none";
-      }
-    }
-
-    function filterTable() {
-      let input = document.getElementById('searchInput');
-      let filter = input.value.toLowerCase();
-      let table = document.getElementById('clientTable');
-      let tr = table.getElementsByTagName('tr');
-
-      for (let i = 1; i < tr.length; i++) {
-        let tdText = tr[i].textContent || tr[i].innerText;
-        tr[i].style.display = tdText.toLowerCase().indexOf(filter) > -1 ? "" : "none";
-      }
-    }
-
-    function toggleChatPopup() {
-      document.getElementById('chatPopup').classList.toggle('active');
-    }
-
-    socket.on('chat-history', (history) => {
-      document.getElementById('chatLog').innerHTML = `<div class="chat-msg"><i>${history.replace(/\n/g, '<br>')}</i></div>`;
-    });
-
-    socket.on('chat-message', (data) => {
-      const chatLog = document.getElementById('chatLog');
-      chatLog.innerHTML += `<div class="chat-msg"><b>${data.user}:</b> ${data.text}</div>`;
-      chatLog.scrollTop = chatLog.scrollHeight;
-    });
-
-    function sendMessage() {
-      const input = document.getElementById('chatInput');
-      const text = input.value.trim();
-      if (text !== '') {
-        socket.emit('chat-message', { user: currentUser, text: text });
-        input.value = '';
-      }
-    }
-
-    function checkEnter(event) {
-      if (event.key === 'Enter') {
-        sendMessage();
-      }
-    }
-  </script>
-
-</body>
-
-</html>
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const session = require('express-session');
+const path = require('path');
+const fs = require('fs');
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
+
+const PORT = process.env.PORT || 3000;
+const DATA_FILE = path.join(__dirname, 'contacts.json');
+const USERS_FILE = path.join(__dirname, 'users.json');
+
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(__dirname));
+
+app.use(session({
+  secret: 'wyn-crm-secret-key',
+  resave: false,
+  saveUninitialized: false
+}));
+
+// Helper functions for JSON file storage
+function readData(file) {
+  if (!fs.existsSync(file)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch (e) {
+    return [];
+  }
+}
+
+function writeData(file, data) {
+  fs.writeFileSync(file, JSON.stringify(data, null, 2));
+}
+
+// Authentication Routes
+app.get('/api/session', (req, res) => {
+  if (req.session.user) {
+    res.json({ loggedIn: true, user: req.session.user });
+  } else {
+    res.json({ loggedIn: false });
+  }
+});
+
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  const users = readData(USERS_FILE);
+  const user = users.find(u => u.username === username && u.password === password);
+
+  if (user) {
+    req.session.user = { username: user.username };
+    res.json({ success: true, user: req.session.user });
+  } else {
+    res.json({ success: false, message: 'Invalid username or password' });
+  }
+});
+
+app.post('/register-user', (req, res) => {
+  const { username, password, adminCode } = req.body;
+  
+  if (adminCode !== 'Wyn2026') {
+    return res.json({ success: false, message: 'Invalid Admin Code' });
+  }
+
+  const users = readData(USERS_FILE);
+  if (users.some(u => u.username === username)) {
+    return res.json({ success: false, message: 'Username already exists' });
+  }
+
+  users.push({ username, password });
+  writeData(USERS_FILE, users);
+  res.json({ success: true });
+});
+
+app.post('/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.json({ success: true });
+  });
+});
+
+// Contacts API Routes
+app.get('/api/contacts', (req, res) => {
+  const contacts = readData(DATA_FILE);
+  res.json(contacts);
+});
+
+app.post('/api/contacts', (req, res) => {
+  const contacts = readData(DATA_FILE);
+  const newContact = {
+    id: contacts.length ? contacts[contacts.length - 1].id + 1 : 1,
+    ...req.body
+  };
+  contacts.push(newContact);
+  writeData(DATA_FILE, contacts);
+  res.json({ success: true, contact: newContact });
+});
+
+// Export to CSV Route
+app.get('/api/download-excel', (req, res) => {
+  const contacts = readData(DATA_FILE);
+  let csv = 'ID,First Name,Last Name,Email,Phone,DOB,Line of Business,Carrier,Level,Premium,Address,Family,More Details,Agent\n';
+  
+  contacts.forEach(c => {
+    csv += `"${c.id}","${c.firstName || ''}","${c.lastName || ''}","${c.email || ''}","${c.phone || ''}","${c.dob || ''}","${c.lineOfBusiness || ''}","${c.healthPlan || ''}","${c.insuranceLevel || ''}","${c.premium || ''}","${c.address || ''}","${c.family || ''}","${c.moreDetails || ''}","${c.user || ''}"\n`;
+  });
+
+  res.header('Content-Type', 'text/csv');
+  res.attachment('aca_crm_records.csv');
+  res.send(csv);
+});
+
+// Socket.io Realtime Chat
+let chatHistory = "Welcome to Office Live Chat!";
+
+io.on('connection', (socket) => {
+  socket.emit('chat-history', chatHistory);
+
+  socket.on('chat-message', (data) => {
+    const formattedMsg = `<b>${data.user}:</b> ${data.text}`;
+    chatHistory += `\n${formattedMsg}`;
+    io.emit('chat-message', data);
+  });
+});
+
+server.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
