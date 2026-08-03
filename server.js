@@ -67,23 +67,31 @@ app.post('/login', (req, res) => {
     const sessionUser = user ? user.username : username;
     req.session.user = { username: sessionUser, isAdmin: Boolean(isAdmin) };
 
-    // --- CLOCK-IN ACTIVITY LOG (Local Timezone: America/Bogota) ---
+    const timestamp = new Date().toLocaleString('en-US', {
+      timeZone: 'America/Bogota',
+      dateStyle: 'medium',
+      timeStyle: 'medium'
+    });
+
+    // --- CLOCK-IN ACTIVITY LOG ---
     const activityLogs = readData(ACTIVITY_FILE);
     const newLog = {
       username: sessionUser,
       action: 'Logged In (Clock-In)',
-      timestamp: new Date().toLocaleString('en-US', {
-        timeZone: 'America/Bogota',
-        dateStyle: 'medium',
-        timeStyle: 'medium'
-      })
+      timestamp: timestamp
     };
     activityLogs.push(newLog);
     writeData(ACTIVITY_FILE, activityLogs);
 
     // Broadcast live update to admin panels
     io.emit('new-activity', newLog);
-    // -------------------------------------------------------------
+    // -----------------------------
+
+    // --- CHAT SYSTEM NOTIFICATION ---
+    const systemMsg = `🟢 <b>${sessionUser}</b> has clocked in.`;
+    chatHistory += `\n${systemMsg}`;
+    io.emit('chat-message', { user: 'System', text: systemMsg });
+    // --------------------------------
 
     res.json({ success: true, user: req.session.user });
   } else {
@@ -135,7 +143,6 @@ app.delete('/api/users/:username', (req, res) => {
   let users = readData(USERS_FILE);
   const initialLength = users.length;
   
-  // Filter out the user to delete
   users = users.filter(u => u.username !== targetUsername);
 
   if (users.length === initialLength) {
@@ -150,16 +157,18 @@ app.post('/logout', (req, res) => {
   const sessionUser = req.session.user ? req.session.user.username : null;
 
   if (sessionUser) {
+    const timestamp = new Date().toLocaleString('en-US', {
+      timeZone: 'America/Bogota',
+      dateStyle: 'medium',
+      timeStyle: 'medium'
+    });
+
     // --- CLOCK-OUT ACTIVITY LOG ---
     const activityLogs = readData(ACTIVITY_FILE);
     const newLog = {
       username: sessionUser,
       action: 'Clocked Out',
-      timestamp: new Date().toLocaleString('en-US', {
-        timeZone: 'America/Bogota',
-        dateStyle: 'medium',
-        timeStyle: 'medium'
-      })
+      timestamp: timestamp
     };
     activityLogs.push(newLog);
     writeData(ACTIVITY_FILE, activityLogs);
@@ -167,6 +176,12 @@ app.post('/logout', (req, res) => {
     // Broadcast live clock-out to admin panels
     io.emit('new-activity', newLog);
     // ----------------------------
+
+    // --- CHAT SYSTEM NOTIFICATION ---
+    const systemMsg = `🔴 <b>${sessionUser}</b> has clocked out.`;
+    chatHistory += `\n${systemMsg}`;
+    io.emit('chat-message', { user: 'System', text: systemMsg });
+    // --------------------------------
   }
 
   req.session.destroy(() => {
@@ -240,7 +255,7 @@ io.on('connection', (socket) => {
   socket.emit('chat-history', chatHistory);
 
   socket.on('chat-message', (data) => {
-    const formattedMsg = `<b>${data.user}:</b> ${data.text}`;
+    const formattedMsg = data.user === 'System' ? data.text : `<b>${data.user}:</b> ${data.text}`;
     chatHistory += `\n${formattedMsg}`;
     io.emit('chat-message', data);
   });
