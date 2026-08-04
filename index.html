@@ -1392,7 +1392,7 @@
       }
 
       const confirmed = confirm(
-        `Confirm Consent Agreement\n\nClient: ${clientName}\nDOB: ${clientDob}\nEmail: ${clientEmail}\nPlan: ${carrier} (${level})\n\nClick OK to auto-fill and open ready-to-send email.`
+        `Confirm Consent Agreement\n\nClient: ${clientName}\nDOB: ${clientDob}\nEmail: ${clientEmail}\nPlan: ${carrier} (${level})\n\nClick OK to generate print/download consent view.`
       );
 
       if (!confirmed) return;
@@ -1406,6 +1406,10 @@
       const selectedPlanText = `${carrier || 'ACA Health Plan'} (${level || 'Standard'})`;
 
       const completedConsentBody = `
+To: ${clientEmail || 'client@email.com'}
+CC: YourInsuranceToday2020@gmail.com
+Subject: ${subject}
+
 Hello ${clientName},
 
 Your health insurance agent/broker consent agreement has been automatically generated with your information for your records and review:
@@ -1428,7 +1432,7 @@ I give permission to the above-mentioned agent/agency to serve as the health ins
 3. I understand the plan(s) I am being enrolled in (${selectedPlanText}) and agree that I wish to be enrolled in that plan. I understand I may cancel delegation anytime via Georgia Access (1-888-687-1503) or Healthcare.gov (1-800-318-2596).
 4. Future Assistance: [X] Agent and agency permission to maintain information and change plans in the future without requiring new consent.
 
-If you decide to work with another agent in the future, please contact Douglas Wynn at 888-360-KARE or yourinsurancetoday2020@gmail.com.
+If you decide to work with another agent in the future, please contact Douglas Wynn at 888-360-KARE or YourInsuranceToday2020@gmail.com.
       `.trim();
 
       if (contactId) {
@@ -1443,7 +1447,42 @@ If you decide to work with another agent in the future, please contact Douglas W
         .catch(err => console.log('Activity logged'));
       }
 
-      window.location.href = `mailto:${clientEmail}?cc=yourinsurancetoday2020@gmail.com&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(completedConsentBody)}`;
+      // Open a clean preview window to Print, Download PDF, or Copy text directly for Gmail
+      const printWindow = window.open('', '_blank', 'width=800,height=700');
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Consent Agreement - ${clientName}</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 30px; color: #1e293b; line-height: 1.6; }
+              h2 { color: #2563eb; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+              pre { background: #f8fafc; padding: 20px; border: 1px solid #cbd5e1; border-radius: 8px; white-space: pre-wrap; font-family: inherit; font-size: 14px; }
+              .btn-container { margin-top: 20px; display: flex; gap: 10px; }
+              button { padding: 10px 20px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+              .btn-print { background: #2563eb; color: white; }
+              .btn-copy { background: #059669; color: white; }
+            </style>
+          </head>
+          <body>
+            <h2>ACA Health Insurance Consent Agreement</h2>
+            <p><b>Client:</b> ${clientName} | <b>Email:</b> ${clientEmail}</p>
+            <pre id="consentText">${completedConsentBody}</pre>
+            <div class="btn-container">
+              <button class="btn-print" onclick="window.print()">🖨️ Print / Save as PDF</button>
+              <button class="btn-copy" onclick="copyConsentText()">📋 Copy Form Text for Gmail</button>
+            </div>
+            <script>
+              function copyConsentText() {
+                const text = document.getElementById('consentText').innerText;
+                navigator.clipboard.writeText(text).then(() => {
+                  alert('✅ Consent agreement copied to clipboard! You can now paste it into Gmail using YourInsuranceToday2020@gmail.com');
+                });
+              }
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
     }
 
     function filterBensonTable() {
