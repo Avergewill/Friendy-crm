@@ -19,7 +19,7 @@ const CALENDAR_FILE = path.join(__dirname, 'calendar.json');
 const ACTIVITY_FILE = path.join(__dirname, 'activity_log.json');
 
 // Encryption configuration
-const ENCRYPTION_KEY = crypto.scryptSync(process.env.SESSION_SECRET || 'wynn-crm-secure-secret-key-2026', 'salt', 32);
+const ENCRYPTION_KEY = crypto.scryptSync(process.env.SESSION_SECRET || 'wyn-crm-secure-secret-key-2026', 'salt', 32);
 const IV_LENGTH = 16;
 
 function encrypt(text) {
@@ -56,7 +56,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'wynn-crm-secure-secret-key-2026',
+  secret: process.env.SESSION_SECRET || 'wyn-crm-secure-secret-key-2026',
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -71,13 +71,10 @@ function readData(file) {
     if (file === USERS_FILE) {
       // Use pre-hashed passwords to prevent any startup blocking sync issues
       const defaultUsers = [
-        { username: 'Santi', password: '$2b$10$YourPreHashedPasswordPlaceholderForWyn', isAdmin: true, registeredAt: new Date().toISOString() },
-        { username: 'Wilmer', password: '$2b$10$YourPreHashedPasswordPlaceholderForStandard', isAdmin: false, registeredAt: new Date().toISOString() },
+        { username: 'Wyn', password: '$2b$10$YourPreHashedPasswordPlaceholderForWyn', isAdmin: true, registeredAt: new Date().toISOString() },
         { username: 'Douglas', password: '$2b$10$YourPreHashedPasswordPlaceholderForStandard', isAdmin: false, registeredAt: new Date().toISOString() },
-        { username: 'Rudolph', password: '$2b$10$YourPreHashedPasswordPlaceholderForStandard', isAdmin: false, registeredAt: new Date().toISOString() },
-        { username: 'George', password: '$2b$10$YourPreHashedPasswordPlaceholderForStandard', isAdmin: false, registeredAt: new Date().toISOString() },
-        { username: 'JC', password: '$2b$10$YourPreHashedPasswordPlaceholderForStandard', useronly: false, registeredAt: new Date().toISOString() },
-        { username: 'John', password: '$2b$10$YourPreHashedPasswordPlaceholderForStandard', useronly: false, registeredAt: new Date().toISOString() }
+        { username: 'Paris', password: '$2b$10$YourPreHashedPasswordPlaceholderForStandard', isAdmin: false, registeredAt: new Date().toISOString() },
+        { username: 'Virlyn', password: '$2b$10$YourPreHashedPasswordPlaceholderForStandard', isAdmin: false, registeredAt: new Date().toISOString() }
       ];
       writeData(USERS_FILE, defaultUsers);
       return defaultUsers;
@@ -119,7 +116,7 @@ app.post('/login', async (req, res) => {
   // Fallback dev/admin check
   if (!passwordValid) {
     if (
-      (username.toLowerCase() === 'wynn' && password === 'WynnaJLkRX2FNhVSncs') ||
+      (username.toLowerCase() === 'wyn' && password === 'WynnaJLkRX2FNhVSncs') ||
       (password === 'aJLkRX2FNhVSncs' || password === 'Sales123' || password === 'Wyn2026')
     ) {
       passwordValid = true;
