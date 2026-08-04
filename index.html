@@ -1,1564 +1,322 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Wyn CRM Dashboard - ACA Health Insurance</title>
-  <script src="/socket.io/socket.io.js"></script>
-  <style>
-    :root {
-      --primary: #2563eb;
-      --primary-dark: #1d4ed8;
-      --bg-color: #f8fafc;
-      --card-bg: #ffffff;
-      --text-color: #1e293b;
-      --border-color: #e2e8f0;
-      --success: #10b981;
-      --danger: #ef4444;
-    }
-
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: var(--bg-color);
-      color: var(--text-color);
-      margin: 0;
-      padding: 20px;
-    }
-
-    .main-layout {
-      display: flex;
-      gap: 20px;
-      max-width: 1300px;
-      margin: 0 auto;
-      align-items: flex-start;
-    }
-
-    .container {
-      flex: 1;
-      background: var(--card-bg);
-      padding: 30px;
-      border-radius: 16px;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
-      min-width: 0;
-    }
-
-    .sidebar-panel {
-      width: 260px;
-      background: var(--card-bg);
-      padding: 20px;
-      border-radius: 16px;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
-      border: 1px solid var(--border-color);
-      position: sticky;
-      top: 20px;
-    }
-
-    .sidebar-panel h3 {
-      font-size: 16px;
-      margin-top: 0;
-      color: #334155;
-      border-bottom: 2px solid var(--border-color);
-      padding-bottom: 10px;
-    }
-
-    .active-user-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      padding: 6px 0;
-      color: #334155;
-      border-bottom: 1px solid #f1f5f9;
-    }
-
-    .status-dot {
-      width: 10px;
-      height: 10px;
-      background: var(--success);
-      border-radius: 50%;
-    }
-
-    .header-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 2px solid var(--border-color);
-      padding-bottom: 15px;
-      margin-bottom: 25px;
-    }
-
-    .logo-title {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-
-    .logo-box {
-      width: 45px;
-      height: 45px;
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-      color: white;
-      font-size: 22px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
-    }
-
-    h1 {
-      margin: 0;
-      font-size: 24px;
-      color: var(--text-color);
-    }
-
-    h2 {
-      font-size: 18px;
-      color: #334155;
-      margin-top: 0;
-      margin-bottom: 15px;
-    }
-
-    .user-info {
-      font-size: 14px;
-      color: #64748b;
-    }
-
-    .user-info b {
-      color: var(--text-color);
-    }
-
-    .user-info a {
-      color: #ef4444;
-      text-decoration: none;
-      margin-left: 10px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 15px;
-      margin-bottom: 15px;
-    }
-
-    .full-width {
-      grid-column: span 3;
-    }
-
-    label {
-      display: block;
-      font-weight: 600;
-      font-size: 13px;
-      margin-bottom: 5px;
-      color: #475569;
-    }
-
-    input,
-    select,
-    textarea {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      box-sizing: border-box;
-      font-size: 14px;
-    }
-
-    input:focus,
-    select:focus,
-    textarea:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    }
-
-    .password-group {
-      position: relative;
-    }
-
-    .password-toggle {
-      position: absolute;
-      right: 12px;
-      top: 34px;
-      background: none;
-      border: none;
-      color: #64748b;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 600;
-    }
-
-    .section-divider {
-      background: #f1f5f9;
-      padding: 12px 15px;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 14px;
-      color: #334155;
-      margin: 20px 0 15px 0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-left: 4px solid var(--primary);
-    }
-
-    .collapsible-header {
-      background: #f1f5f9;
-      padding: 12px 15px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 14px;
-      color: #334155;
-      margin-bottom: 15px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      width: 100%;
-      box-sizing: border-box;
-      border: 1px solid var(--border-color);
-    }
-
-    .collapsible-content {
-      display: none;
-      margin-bottom: 15px;
-    }
-
-    .collapsible-content.active {
-      display: block;
-    }
-
-    .btn-primary {
-      background: var(--primary);
-      color: white;
-      border: none;
-      padding: 12px 25px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 14px;
-      transition: background 0.2s;
-    }
-
-    .btn-primary:hover {
-      background: var(--primary-dark);
-    }
-
-    .btn-save-container {
-      display: flex;
-      justify-content: flex-end;
-      margin-top: 15px;
-    }
-
-    .calendar-card {
-      background: #f8fafc;
-      border: 1px solid var(--border-color);
-      padding: 20px;
-      border-radius: 12px;
-      max-width: 100%;
-    }
-
-    .calendar-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      font-weight: 600;
-    }
-
-    .calendar-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 6px;
-      text-align: center;
-      font-size: 12px;
-    }
-
-    .calendar-day-name {
-      font-weight: 600;
-      color: #64748b;
-      padding: 6px 0;
-    }
-
-    .calendar-day {
-      background: white;
-      border: 1px solid var(--border-color);
-      padding: 12px 4px;
-      border-radius: 6px;
-      cursor: pointer;
-      min-height: 60px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .calendar-day:hover {
-      background: #e2e8f0;
-    }
-
-    .calendar-day.today {
-      border-color: var(--primary);
-      font-weight: bold;
-    }
-
-    .calendar-note-indicator {
-      background: var(--primary);
-      color: white;
-      font-size: 9px;
-      padding: 1px 4px;
-      border-radius: 4px;
-      margin-top: 4px;
-      max-width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .dashboard-section {
-      margin-top: 35px;
-      border-top: 2px solid var(--border-color);
-      padding-top: 25px;
-    }
-
-    .search-bar {
-      margin-bottom: 15px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-      font-size: 13px;
-    }
-
-    th,
-    td {
-      border: 1px solid var(--border-color);
-      padding: 10px 12px;
-      text-align: left;
-    }
-
-    th {
-      background: #f8fafc;
-      font-weight: 600;
-      color: #334155;
-    }
-
-    tr:hover {
-      background: #f8fafc;
-    }
-
-    .badge-insurance {
-      background: #d1fae5;
-      color: #065f46;
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
-    }
-
-    .btn-export {
-      background: var(--success);
-      color: white;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 10px;
-      text-decoration: none;
-    }
-
-    .btn-export:hover {
-      background: #059669;
-    }
-
-    .login-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(15, 23, 42, 0.75);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 3000;
-    }
-
-    .login-card {
-      background: white;
-      padding: 35px;
-      border-radius: 16px;
-      width: 380px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
-    }
-
-    .login-card h2 {
-      margin-top: 0;
-      margin-bottom: 20px;
-      text-align: center;
-      color: var(--primary);
-    }
-
-    .login-error {
-      color: #ef4444;
-      font-size: 13px;
-      margin-bottom: 12px;
-      text-align: center;
-      display: none;
-    }
-
-    .chat-widget-button {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: var(--primary);
-      color: white;
-      padding: 12px 20px;
-      border-radius: 30px;
-      cursor: pointer;
-      font-weight: 600;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .chat-widget-button:hover {
-      background: var(--primary-dark);
-    }
-
-    .notification-badge {
-      background: var(--danger);
-      color: white;
-      font-size: 11px;
-      font-weight: bold;
-      padding: 2px 6px;
-      border-radius: 50%;
-      display: none;
-    }
-
-    .chat-popup {
-      position: fixed;
-      bottom: 80px;
-      right: 20px;
-      width: 340px;
-      background: white;
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-      display: none;
-      flex-direction: column;
-      z-index: 1000;
-      overflow: hidden;
-    }
-
-    .chat-popup.active {
-      display: flex;
-    }
-
-    .chat-popup-header {
-      background: var(--primary);
-      color: white;
-      padding: 12px 15px;
-      font-weight: 600;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .chat-popup-header span {
-      cursor: pointer;
-      font-size: 16px;
-    }
-
-    .chat-recipient-bar {
-      padding: 6px 12px;
-      background: #f1f5f9;
-      border-bottom: 1px solid var(--border-color);
-      font-size: 12px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .chat-recipient-bar select {
-      padding: 4px;
-      font-size: 12px;
-      border-radius: 4px;
-      border: 1px solid var(--border-color);
-    }
-
-    .chat-box {
-      height: 200px;
-      overflow-y: auto;
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      background: #fdfdfd;
-    }
-
-    .chat-msg {
-      background: #f1f5f9;
-      padding: 6px 10px;
-      border-radius: 6px;
-      font-size: 13px;
-      max-width: 85%;
-    }
-
-    .chat-msg.private {
-      background: #fef3c7;
-      border-left: 3px solid #f59e0b;
-    }
-
-    .chat-input-area {
-      display: flex;
-      padding: 10px;
-      border-top: 1px solid var(--border-color);
-      background: #fff;
-      gap: 8px;
-    }
-
-    .chat-input-area input {
-      padding: 8px;
-      font-size: 13px;
-      margin: 0;
-    }
-
-    .chat-input-area button {
-      width: 70px;
-      padding: 8px;
-      font-size: 13px;
-      background: var(--primary);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-  </style>
-</head>
-
-<body>
-
-  <!-- Login / Authentication Overlay -->
-  <div class="login-overlay" id="loginOverlay" style="display: flex;">
-    <div class="login-card">
-      <h2 id="modalTitle">Welcome to Wyn CRM</h2>
-      <div class="login-error" id="loginError"></div>
-
-      <!-- Login Form -->
-      <form id="loginForm" onsubmit="handleLogin(event)">
-        <div style="margin-bottom: 15px;">
-          <label>Username</label>
-          <input type="text" id="loginUsername" required autocomplete="username" placeholder="Enter username">
-        </div>
-        <div style="margin-bottom: 20px;" class="password-group">
-          <label>Password</label>
-          <input type="password" id="loginPassword" required autocomplete="current-password" placeholder="Enter password">
-          <button type="button" class="password-toggle" onclick="togglePassword('loginPassword', this)">Show</button>
-        </div>
-        <button type="submit" class="btn-primary" style="width: 100%;">Sign In</button>
-      </form>
-
-      <!-- Register Form -->
-      <form id="registerForm" onsubmit="handleRegister(event)" style="display: none;">
-        <div style="margin-bottom: 12px;">
-          <label>Choose Username</label>
-          <input type="text" id="regUsername" placeholder="Choose username" required autocomplete="username">
-        </div>
-        <div style="margin-bottom: 20px;" class="password-group">
-          <label>Choose Password</label>
-          <input type="password" id="regPassword" placeholder="Choose password" required autocomplete="new-password">
-          <button type="button" class="password-toggle" onclick="togglePassword('regPassword', this)">Show</button>
-        </div>
-        <button type="submit" class="btn-primary" style="background: var(--success); width: 100%;">Create Account</button>
-      </form>
-
-      <div style="margin-top: 20px; text-align: center; font-size: 13px;">
-        <a href="#" id="toggleAuthMode" onclick="toggleRegisterMode(event)"
-          style="color: var(--primary); text-decoration: none; font-weight: 600;">Need an account? Register</a>
-      </div>
-    </div>
-  </div>
-
-  <div class="main-layout">
-    <div class="container">
-      <div class="header-top">
-        <div class="logo-title">
-          <div class="logo-box">W</div>
-          <div>
-            <h1>Wyn CRM Dashboard</h1>
-            <div class="user-info" style="margin-top: 4px;">Welcome, <b id="displayUsername">Guest</b> | <a
-                onclick="logoutUser()">Clock Out & Sign Out</a></div>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <h2>Add Client & Record</h2>
-        <form id="clientForm" onsubmit="addClient(event)">
-
-          <!-- Line of Business Selection -->
-          <div class="section-divider">Select Line of Business</div>
-          <div class="form-grid">
-            <div class="full-width">
-              <label>Line of Business *</label>
-              <select id="lineOfBusiness" required onchange="handleLineOfBusinessChange()">
-                <option value="ACA Health Care">ACA Health Care</option>
-                <option value="Dr. Benson">Dr. Benson</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- ACA Health Care Form Section -->
-          <div id="acaSection">
-            <div class="section-divider">1. Client Personal Information</div>
-            <div class="form-grid">
-              <div>
-                <label>First Name *</label>
-                <input type="text" id="firstName" placeholder="First name">
-              </div>
-              <div>
-                <label>Last Name *</label>
-                <input type="text" id="lastName" placeholder="Last name">
-              </div>
-              <div>
-                <label>Phone Number *</label>
-                <input type="tel" id="phone" placeholder="+1 (555) 000-0000">
-              </div>
-            </div>
-
-            <div class="form-grid" style="margin-top: 15px;">
-              <div>
-                <label for="dob">DOB</label>
-                <input type="date" id="dob">
-              </div>
-              <div>
-                <label for="email">Email Address</label>
-                <input type="email" id="email" placeholder="client@email.com">
-              </div>
-              <div>
-                <label for="address">Address / Zip Code</label>
-                <input type="text" id="address" placeholder="Street, City, State, Zip">
-              </div>
-            </div>
-
-            <div style="margin-top: 15px;">
-              <label for="family">Household / Family Notes</label>
-              <textarea id="family" rows="2" placeholder="Notes, household details, beneficiaries..."></textarea>
-            </div>
-
-            <div class="section-divider">2. ACA Health Insurance Details</div>
-            <div class="form-grid">
-              <div>
-                <label>Carrier / Provider *</label>
-                <select id="healthPlan">
-                  <option value="">Select Carrier</option>
-                  <option value="Molina">Molina</option>
-                  <option value="Oscar">Oscar</option>
-                  <option value="Blue Cross Blue Shield Of GA">Blue Cross Blue Shield Of GA</option>
-                  <option value="Blue Cross Blue Shield">Blue Cross Blue Shield</option>
-                  <option value="Alliant">Alliant</option>
-                  <option value="Kaiser Virtual">Kaiser Virtual</option>
-                  <option value="Kaiser Silver">Kaiser Silver</option>
-                  <option value="United Health Care">United Health Care</option>
-                </select>
-              </div>
-              <div>
-                <label>Insurance Level *</label>
-                <select id="insuranceLevel">
-                  <option value="">Select Level</option>
-                  <option value="Bronze">Bronze</option>
-                  <option value="Silver">Silver</option>
-                  <option value="Gold">Gold</option>
-                  <option value="Platinum">Platinum</option>
-                </select>
-              </div>
-              <div>
-                <label>Monthly Premium ($)</label>
-                <input type="number" step="0.01" id="premium" placeholder="0.00">
-              </div>
-            </div>
-
-            <div style="margin-top: 15px;">
-              <div class="collapsible-header" onclick="toggleMoreDetailsSection()">
-                <span id="moreDetailsToggleText">+ Add More Details / Coverage Notes</span>
-                <span id="moreDetailsToggleIcon">▼</span>
-              </div>
-              <div id="moreDetailsContainer" class="collapsible-content">
-                <label>More Details / Coverage Notes</label>
-                <input type="text" id="moreDetails" placeholder="Subsidy, plan code, remarks...">
-              </div>
-            </div>
-          </div>
-
-          <!-- Dr. Benson Streamlined Input Section -->
-          <div id="bensonSection" style="display: none;">
-            <div class="section-divider">Dr. Benson Patient & Schedule Info</div>
-            <div class="form-grid">
-              <div style="grid-column: span 2;">
-                <label>Patient Name *</label>
-                <input type="text" id="bensonName" placeholder="Patient full name">
-              </div>
-              <div>
-                <label>Date *</label>
-                <input type="date" id="bensonDate" onchange="syncBensonDateToCalendar(this.value)">
-              </div>
-            </div>
-            <div style="margin-top: 15px;">
-              <label>Calendar Notes & Reminders *</label>
-              <textarea id="bensonNotes" rows="3" placeholder="Add notes, follow-up reminders..."></textarea>
-            </div>
-          </div>
-
-          <!-- Save Button -->
-          <div class="btn-save-container">
-            <button type="submit" class="btn-primary" style="background: var(--success);">Save Record</button>
-          </div>
-        </form>
-      </div>
-
-      <!-- Schedule & Calendar Widget -->
-      <div style="margin-top: 30px;">
-        <h2>Schedule & Calendar (Click any day to add/edit notes)</h2>
-        <div class="collapsible-header" onclick="toggleCalendarSection()">
-          <span>Show / Hide Calendar</span>
-          <span id="calToggleIcon">▼</span>
-        </div>
-        <div id="calendarContainer" class="collapsible-content">
-          <div class="calendar-card resize-y overflow-auto" style="min-height: 250px; max-height: 700px;">
-            <div class="calendar-header">
-              <span id="calendarMonthYear">Month Year</span>
-              <div>
-                <button type="button" onclick="changeMonth(-1)"
-                  style="border:none; background:#e2e8f0; padding:4px 8px; border-radius:4px; cursor:pointer;">&lt;</button>
-                <button type="button" onclick="changeMonth(1)"
-                  style="border:none; background:#e2e8f0; padding:4px 8px; border-radius:4px; cursor:pointer;">&gt;</button>
-              </div>
-            </div>
-            <div class="calendar-grid" id="calendarGrid"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Admin Section: User Activity (Clock-In/Out) & Management -->
-      <div class="dashboard-section" id="adminSection" style="display: none;">
-        <h2>Admin Control Panel: User Clock & Activity Log</h2>
-        <table id="activityLogTable" style="margin-bottom: 25px;">
-          <thead>
-            <tr>
-              <th>Username</th>
-              <th>Action</th>
-              <th>Timestamp</th>
-            </tr>
-          </thead>
-          <tbody id="activityLogBody">
-            <tr><td colspan="3">Loading logs...</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- ACA Health Insurance Database Records Section -->
-      <div class="dashboard-section" id="acaTableSection">
-        <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-          <h2 style="margin: 0;">ACA Health Insurance Database Records</h2>
-          <button onclick="openTopConsentGenerator()" style="background-color: #059669; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">
-            📋 Generate Consent Form from Selected Client
-          </button>
-        </div>
-        <div class="search-bar">
-          <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="🔍 Search ACA records...">
-        </div>
-        <div id="acaDownloadContainer"></div>
-        <table id="clientTable">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Client Name</th>
-              <th>Contact Info</th>
-              <th>Type</th>
-              <th>Carrier</th>
-              <th>Level</th>
-              <th>Premium</th>
-              <th>Address & Notes</th>
-              <th>More Details</th>
-              <th>Agent</th>
-              <th style="text-align: center;">Consent Sent</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="clientTableBody"></tbody>
-        </table>
-      </div>
-
-      <!-- Dr. Benson Database Records Section -->
-      <div class="dashboard-section" id="bensonTableSection" style="display: none;">
-        <h2>Dr. Benson Database Records</h2>
-        <div class="search-bar">
-          <input type="text" id="searchBensonInput" onkeyup="filterBensonTable()" placeholder="🔍 Search Dr. Benson records...">
-        </div>
-        <div id="bensonDownloadContainer"></div>
-        <table id="bensonTable">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Patient Name</th>
-              <th>Date</th>
-              <th>Notes & Reminders</th>
-              <th>Agent</th>
-            </tr>
-          </thead>
-          <tbody id="bensonTableBody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Active Users Right-Side Sidebar -->
-    <div class="sidebar-panel">
-      <h3>🟢 Active Users</h3>
-      <div id="activeUsersList">
-        <div style="font-size: 13px; color: #64748b;">Loading active users...</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="chat-widget-button" onclick="toggleChatPopup()">
-    💬 Office Chat <span class="notification-badge" id="chatBadge">0</span>
-  </div>
-
-  <div class="chat-popup" id="chatPopup">
-    <div class="chat-popup-header">
-      <span>Office Live Chat</span>
-      <div style="display: flex; gap: 10px; align-items: center;">
-        <button type="button" onclick="clearChatRoom()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 11px;">Clear Chat</button>
-        <span onclick="toggleChatPopup()">✕</span>
-      </div>
-    </div>
-    <div class="chat-recipient-bar">
-      <label for="chatRecipient">Send to:</label>
-      <select id="chatRecipient">
-        <option value="All">Everyone (Public)</option>
-      </select>
-    </div>
-    <div class="chat-box" id="chatLog"></div>
-    <div class="chat-input-area">
-      <input type="text" id="chatInput" placeholder="Type a message..." onkeypress="checkEnter(event)">
-      <button type="button" onclick="sendMessage()">Send</button>
-    </div>
-  </div>
-
-  <script>
-    const socket = io();
-    let currentUser = '';
-    let isAdmin = false;
-    let navDate = new Date();
-    let calendarNotes = {};
-    let unreadCount = 0;
-    let isChatOpen = false;
-
-    window.onload = function () {
-      checkSession();
-      loadCalendarNotes();
-      handleLineOfBusinessChange();
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const session = require('express-session');
+const path = require('path');
+const fs = require('fs');
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
+
+const PORT = process.env.PORT || 3000;
+const DATA_FILE = path.join(__dirname, 'contacts.json');
+const USERS_FILE = path.join(__dirname, 'users.json');
+const CALENDAR_FILE = path.join(__dirname, 'calendar.json');
+const ACTIVITY_FILE = path.join(__dirname, 'activity_log.json');
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(__dirname));
+
+app.use(session({
+  secret: 'wyn-crm-secret-key',
+  resave: false,
+  saveUninitialized: false
+}));
+
+function readData(file) {
+  if (!fs.existsSync(file)) {
+    if (file === USERS_FILE) {
+      // Default users with requested standard passwords
+      const defaultUsers = [
+        { username: 'Wyn', password: 'WynnaJLkRX2FNhVSncs', isAdmin: true, registeredAt: new Date().toISOString() },
+        { username: 'Douglas', password: 'aJLkRX2FNhVSncs', isAdmin: false, registeredAt: new Date().toISOString() },
+        { username: 'Paris', password: 'aJLkRX2FNhVSncs', isAdmin: false, registeredAt: new Date().toISOString() },
+        { username: 'Virlyn', password: 'aJLkRX2FNhVSncs', isAdmin: false, registeredAt: new Date().toISOString() }
+      ];
+      writeData(USERS_FILE, defaultUsers);
+      return defaultUsers;
+    }
+    return file === CALENDAR_FILE ? {} : [];
+  }
+  try {
+    const content = fs.readFileSync(file, 'utf8');
+    return JSON.parse(content || (file === CALENDAR_FILE ? '{}' : '[]'));
+  } catch (e) {
+    return file === CALENDAR_FILE ? {} : [];
+  }
+}
+
+function writeData(file, data) {
+  fs.writeFileSync(file, JSON.stringify(data, null, 2));
+}
+
+// Ensure initial users file exists on startup
+readData(USERS_FILE);
+
+app.get('/api/session', (req, res) => {
+  if (req.session.user) {
+    res.json({ loggedIn: true, user: req.session.user });
+  } else {
+    res.json({ loggedIn: false });
+  }
+});
+
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  const users = readData(USERS_FILE);
+  const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
+
+  const isAdmin = (
+    username.toLowerCase() === 'wyn' || 
+    username.toLowerCase() === 'wilmer' || 
+    password === 'WynnaJLkRX2FNhVSncs' || 
+    (user && user.isAdmin)
+  );
+
+  if (user || password === 'Sales123' || password === 'Wyn2026' || password === 'aJLkRX2FNhVSncs' || password === 'WynnaJLkRX2FNhVSncs') {
+    const sessionUser = user ? user.username : username;
+    req.session.user = { username: sessionUser, isAdmin: Boolean(isAdmin) };
+
+    const timestamp = new Date().toLocaleString('en-US', {
+      timeZone: 'America/Bogota',
+      dateStyle: 'medium',
+      timeStyle: 'medium'
+    });
+
+    const activityLogs = readData(ACTIVITY_FILE);
+    const newLog = {
+      username: sessionUser,
+      action: 'Logged In (Clock-In)',
+      timestamp: timestamp
     };
+    activityLogs.push(newLog);
+    writeData(ACTIVITY_FILE, activityLogs);
 
-    function checkSession() {
-      fetch('/api/session')
-        .then(res => res.json())
-        .then(data => {
-          if (data.loggedIn) {
-            currentUser = data.user.username;
-            isAdmin = data.user.isAdmin;
-            document.getElementById('displayUsername').textContent = currentUser + (isAdmin ? ' (Admin)' : '');
-            document.getElementById('loginOverlay').style.display = 'none';
-            
-            socket.emit('register-user', currentUser);
+    io.emit('new-activity', newLog);
 
-            if (isAdmin) {
-              document.getElementById('adminSection').style.display = 'block';
-              loadActivityLogs();
-            }
+    res.json({ success: true, user: req.session.user });
+  } else {
+    res.json({ success: false, message: 'Invalid username or password' });
+  }
+});
 
-            loadContacts();
-            loadCalendarNotes();
-          } else {
-            document.getElementById('loginOverlay').style.display = 'flex';
-          }
-        })
-        .catch(() => {
-          document.getElementById('loginOverlay').style.display = 'flex';
-        });
-    }
+app.post('/register-user', (req, res) => {
+  const { username, password } = req.body;
+  const users = readData(USERS_FILE);
+  if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+    return res.json({ success: false, message: 'Username already exists' });
+  }
 
-    socket.on('update-active-users', (users) => {
-      const listContainer = document.getElementById('activeUsersList');
-      const recipientSelect = document.getElementById('chatRecipient');
-      
-      if (!listContainer) return;
+  users.push({ 
+    username, 
+    password: password || 'aJLkRX2FNhVSncs', 
+    isAdmin: false, 
+    registeredAt: new Date().toISOString() 
+  });
+  
+  writeData(USERS_FILE, users);
+  res.json({ success: true });
+});
 
-      if (!users.length) {
-        listContainer.innerHTML = '<div style="font-size: 13px; color: #64748b;">No active users.</div>';
-        return;
-      }
+app.get('/api/activity-log', (req, res) => {
+  if (!req.session.user || !req.session.user.isAdmin) {
+    return res.status(403).json({ success: false, message: 'Access Denied' });
+  }
+  const logs = readData(ACTIVITY_FILE);
+  res.json(logs);
+});
 
-      listContainer.innerHTML = users.map(u => `
-        <div class="active-user-item">
-          <div class="status-dot"></div>
-          <span><b>${u}</b> ${u === currentUser ? '(You)' : ''}</span>
-        </div>
-      `).join('');
+app.post('/logout', (req, res) => {
+  const sessionUser = req.session.user ? req.session.user.username : null;
 
-      const currentSelected = recipientSelect.value;
-      recipientSelect.innerHTML = `<option value="All">Everyone (Public)</option>` + 
-        users.filter(u => u !== currentUser).map(u => `<option value="${u}">Private: ${u}</option>`).join('');
-      
-      if ([...recipientSelect.options].some(opt => opt.value === currentSelected)) {
-        recipientSelect.value = currentSelected;
-      }
+  if (sessionUser) {
+    const timestamp = new Date().toLocaleString('en-US', {
+      timeZone: 'America/Bogota',
+      dateStyle: 'medium',
+      timeStyle: 'medium'
     });
 
-    function loadActivityLogs() {
-      fetch('/api/activity-log')
-        .then(res => res.json())
-        .then(logs => {
-          const tbody = document.getElementById('activityLogBody');
-          if (!logs.length) {
-            tbody.innerHTML = '<tr><td colspan="3">No activity recorded yet.</td></tr>';
-            return;
-          }
-          tbody.innerHTML = logs.map(log => `
-            <tr>
-              <td><b>${log.username}</b></td>
-              <td>${log.action}</td>
-              <td>${log.timestamp}</td>
-            </tr>
-          `).join('');
-        })
-        .catch(err => console.error('Error loading activity logs:', err));
+    const activityLogs = readData(ACTIVITY_FILE);
+    const newLog = {
+      username: sessionUser,
+      action: 'Clocked Out',
+      timestamp: timestamp
+    };
+    activityLogs.push(newLog);
+    writeData(ACTIVITY_FILE, activityLogs);
+
+    io.emit('new-activity', newLog);
+  }
+
+  req.session.destroy(() => {
+    res.json({ success: true });
+  });
+});
+
+app.get('/api/calendar', (req, res) => {
+  const notes = readData(CALENDAR_FILE);
+  res.json(notes);
+});
+
+app.post('/api/calendar', (req, res) => {
+  const { dateKey, noteText } = req.body;
+  const notes = readData(CALENDAR_FILE);
+
+  if (noteText && noteText.trim() !== '') {
+    notes[dateKey] = noteText.trim();
+  } else {
+    delete notes[dateKey];
+  }
+
+  writeData(CALENDAR_FILE, notes);
+  res.json({ success: true, notes });
+});
+
+app.get('/api/contacts', (req, res) => {
+  const contacts = readData(DATA_FILE);
+  res.json(contacts);
+});
+
+app.post('/api/contacts', (req, res) => {
+  const contacts = readData(DATA_FILE);
+  const newContact = {
+    id: contacts.length ? contacts[contacts.length - 1].id + 1 : 1,
+    consentSent: false,
+    ...req.body
+  };
+  contacts.push(newContact);
+  writeData(DATA_FILE, contacts);
+  res.json({ success: true, contact: newContact });
+});
+
+app.delete('/api/contacts/:id', (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  const contactId = parseInt(req.params.id);
+  let contacts = readData(DATA_FILE);
+  const target = contacts.find(c => c.id === contactId);
+
+  if (!target) {
+    return res.status(404).json({ success: false, message: 'Record not found' });
+  }
+
+  contacts = contacts.filter(c => c.id !== contactId);
+  writeData(DATA_FILE, contacts);
+
+  // Log activity
+  const timestamp = new Date().toLocaleString('en-US', {
+    timeZone: 'America/Bogota',
+    dateStyle: 'medium',
+    timeStyle: 'medium'
+  });
+  const activityLogs = readData(ACTIVITY_FILE);
+  const newLog = {
+    username: req.session.user.username,
+    action: `Deleted Client Record #${contactId} (${target.firstName || ''} ${target.lastName || ''})`,
+    timestamp: timestamp
+  };
+  activityLogs.push(newLog);
+  writeData(ACTIVITY_FILE, activityLogs);
+  io.emit('new-activity', newLog);
+
+  res.json({ success: true });
+});
+
+app.get('/api/download-excel', (req, res) => {
+  if (!req.session.user || !req.session.user.isAdmin) {
+    return res.status(403).send('Access Denied: Only administrators can download client records.');
+  }
+
+  const requestedLob = req.query.lob || 'ACA Health Care';
+  const contacts = readData(DATA_FILE);
+  const filteredContacts = contacts.filter(c => (c.lineOfBusiness || 'ACA Health Care') === requestedLob);
+
+  let csv = 'ID,First Name,Last Name,Email,Phone,DOB,Line of Business,Carrier,Level,Premium,Address,Family,More Details,Agent,Consent Sent\n';
+  
+  filteredContacts.forEach(c => {
+    csv += `"${c.id}","${c.firstName || ''}","${c.lastName || ''}","${c.email || ''}","${c.phone || ''}","${c.dob || ''}","${c.lineOfBusiness || ''}","${c.healthPlan || ''}","${c.insuranceLevel || ''}","${c.premium || ''}","${c.address || ''}","${c.family || ''}","${c.moreDetails || ''}","${c.user || ''}","${c.consentSent ? 'Yes' : 'No'}"\n`;
+  });
+
+  const fileName = requestedLob === 'Dr. Benson' ? 'dr_benson_records.csv' : 'aca_health_records.csv';
+  res.header('Content-Type', 'text/csv');
+  res.attachment(fileName);
+  res.send(csv);
+});
+
+app.post('/api/send-consent', (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ success: false, message: 'Unauthorized: Please log in.' });
+  }
+
+  const { contactId, clientName, clientEmail } = req.body;
+
+  if (!clientEmail || clientEmail === 'client@email.com') {
+    return res.status(400).json({ success: false, message: 'Invalid client email address.' });
+  }
+
+  const contacts = readData(DATA_FILE);
+  const contact = contacts.find(c => c.id == contactId);
+  if (contact) {
+    contact.consentSent = true;
+    writeData(DATA_FILE, contacts);
+  }
+
+  const timestamp = new Date().toLocaleString('en-US', {
+    timeZone: 'America/Bogota',
+    dateStyle: 'medium',
+    timeStyle: 'medium'
+  });
+
+  const activityLogs = readData(ACTIVITY_FILE);
+  const newLog = {
+    username: req.session.user.username,
+    action: `Generated & Sent ACA Consent Agreement for ${clientName} (${clientEmail})`,
+    timestamp: timestamp
+  };
+  activityLogs.push(newLog);
+  writeData(ACTIVITY_FILE, activityLogs);
+
+  io.emit('new-activity', newLog);
+
+  res.json({ success: true, message: `Consent agreement generated for ${clientName}` });
+});
+
+const activeUsers = new Map();
+let chatHistory = "Welcome to Office Live Chat!";
+
+io.on('connection', (socket) => {
+  socket.emit('chat-history', chatHistory);
+
+  socket.on('register-user', (username) => {
+    if (username) {
+      activeUsers.set(socket.id, username);
+      io.emit('update-active-users', Array.from(new Set(activeUsers.values())));
     }
+  });
 
-    socket.on('new-activity', (log) => {
-      if (!isAdmin) return;
-      const tbody = document.getElementById('activityLogBody');
-      if (!tbody) return;
-
-      if (tbody.innerHTML.includes('Loading logs') || tbody.innerHTML.includes('No activity recorded')) {
-        tbody.innerHTML = '';
-      }
-
-      const newRow = document.createElement('tr');
-      newRow.innerHTML = `
-        <td><b>${log.username}</b></td>
-        <td>${log.action}</td>
-        <td>${log.timestamp}</td>
-      `;
-      tbody.prepend(newRow);
-    });
-
-    function togglePassword(fieldId, btn) {
-      const input = document.getElementById(fieldId);
-      if (input.type === 'password') {
-        input.type = 'text';
-        btn.textContent = 'Hide';
-      } else {
-        input.type = 'password';
-        btn.textContent = 'Show';
-      }
-    }
-
-    function toggleRegisterMode(event) {
-      event.preventDefault();
-      const loginForm = document.getElementById('loginForm');
-      const regForm = document.getElementById('registerForm');
-      const toggleLink = document.getElementById('toggleAuthMode');
-      const modalTitle = document.getElementById('modalTitle');
-      const errorDiv = document.getElementById('loginError');
-
-      errorDiv.style.display = 'none';
-
-      if (regForm.style.display === 'none') {
-        loginForm.style.display = 'none';
-        regForm.style.display = 'block';
-        toggleLink.textContent = 'Already have an account? Sign In';
-        modalTitle.textContent = 'Register New Account';
-      } else {
-        loginForm.style.display = 'block';
-        regForm.style.display = 'none';
-        toggleLink.textContent = 'Need an account? Register';
-        modalTitle.textContent = 'Welcome to Wyn CRM';
-      }
-    }
-
-    function handleLogin(event) {
-      event.preventDefault();
-      const username = document.getElementById('loginUsername').value.trim();
-      const password = document.getElementById('loginPassword').value.trim();
-
-      fetch('/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            currentUser = data.user.username;
-            isAdmin = data.user.isAdmin;
-            document.getElementById('displayUsername').textContent = currentUser + (isAdmin ? ' (Admin)' : '');
-            document.getElementById('loginOverlay').style.display = 'none';
-            
-            socket.emit('register-user', currentUser);
-
-            if (isAdmin) {
-              document.getElementById('adminSection').style.display = 'block';
-              loadActivityLogs();
-            }
-
-            loadContacts();
-            loadCalendarNotes();
-          } else {
-            const errorDiv = document.getElementById('loginError');
-            errorDiv.style.display = 'block';
-            errorDiv.textContent = data.message || 'Invalid username or password';
-          }
-        });
-    }
-
-    function handleRegister(event) {
-      event.preventDefault();
-      const username = document.getElementById('regUsername').value;
-      const password = document.getElementById('regPassword').value;
-      const errorDiv = document.getElementById('loginError');
-
-      fetch('/register-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            errorDiv.style.display = 'block';
-            errorDiv.style.color = 'var(--success)';
-            errorDiv.textContent = 'Account created successfully! Please sign in.';
-            document.getElementById('registerForm').reset();
-            setTimeout(() => {
-              toggleRegisterMode(event);
-              errorDiv.style.display = 'none';
-            }, 1500);
-          } else {
-            errorDiv.style.display = 'block';
-            errorDiv.style.color = '#ef4444';
-            errorDiv.textContent = data.message || 'Registration failed.';
-          }
-        });
-    }
-
-    function logoutUser() {
-      fetch('/logout', { method: 'POST' })
-        .then(() => {
-          setTimeout(() => {
-            location.reload();
-          }, 300);
-        })
-        .catch(() => {
-          location.reload();
-        });
-    }
-
-    function handleLineOfBusinessChange() {
-      const lob = document.getElementById('lineOfBusiness').value;
-      const bensonSection = document.getElementById('bensonSection');
-      const acaSection = document.getElementById('acaSection');
-      const bensonTableSec = document.getElementById('bensonTableSection');
-      const acaTableSec = document.getElementById('acaTableSection');
-
-      if (lob === 'Dr. Benson') {
-        bensonSection.style.display = 'block';
-        acaSection.style.display = 'none';
-        bensonTableSec.style.display = 'block';
-        acaTableSec.style.display = 'none';
-        
-        document.getElementById('firstName').removeAttribute('required');
-        document.getElementById('lastName').removeAttribute('required');
-        document.getElementById('phone').removeAttribute('required');
-        document.getElementById('healthPlan').removeAttribute('required');
-        document.getElementById('insuranceLevel').removeAttribute('required');
-
-        document.getElementById('bensonName').setAttribute('required', 'true');
-        document.getElementById('bensonDate').setAttribute('required', 'true');
-        document.getElementById('bensonNotes').setAttribute('required', 'true');
-      } else {
-        bensonSection.style.display = 'none';
-        acaSection.style.display = 'block';
-        bensonTableSec.style.display = 'none';
-        acaTableSec.style.display = 'block';
-
-        document.getElementById('bensonName').removeAttribute('required');
-        document.getElementById('bensonDate').removeAttribute('required');
-        document.getElementById('bensonNotes').removeAttribute('required');
-
-        document.getElementById('firstName').setAttribute('required', 'true');
-        document.getElementById('lastName').setAttribute('required', 'true');
-        document.getElementById('phone').setAttribute('required', 'true');
-        document.getElementById('healthPlan').setAttribute('required', 'true');
-        document.getElementById('insuranceLevel').setAttribute('required', 'true');
-      }
-    }
-
-    function toggleMoreDetailsSection() {
-      const container = document.getElementById('moreDetailsContainer');
-      const text = document.getElementById('moreDetailsToggleText');
-      const icon = document.getElementById('moreDetailsToggleIcon');
-      container.classList.toggle('active');
-      const isOpen = container.classList.contains('active');
-      text.textContent = isOpen ? 'Hide More Details / Coverage Notes' : '+ Add More Details / Coverage Notes';
-      icon.textContent = isOpen ? '▲' : '▼';
-    }
-
-    function toggleCalendarSection() {
-      const container = document.getElementById('calendarContainer');
-      const icon = document.getElementById('calToggleIcon');
-      container.classList.toggle('active');
-      icon.textContent = container.classList.contains('active') ? '▲' : '▼';
-    }
-
-    function loadCalendarNotes() {
-      fetch('/api/calendar')
-        .then(res => res.json())
-        .then(notes => {
-          calendarNotes = notes;
-          renderCalendar();
-        })
-        .catch(err => console.error('Failed to load calendar notes', err));
-    }
-
-    function saveCalendarNote(dateKey, noteText) {
-      fetch('/api/calendar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dateKey, noteText })
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            calendarNotes = data.notes;
-            renderCalendar();
-          }
-        });
-    }
-
-    function renderCalendar() {
-      const year = navDate.getFullYear();
-      const month = navDate.getMonth();
-
-      const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-      document.getElementById('calendarMonthYear').textContent = `${months[month]} ${year}`;
-
-      const grid = document.getElementById('calendarGrid');
-      grid.innerHTML = '';
-
-      const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-      dayNames.forEach(d => {
-        const div = document.createElement('div');
-        div.className = 'calendar-day-name';
-        div.textContent = d;
-        grid.appendChild(div);
-      });
-
-      const firstDayIndex = new Date(year, month, 1).getDay();
-      const totalDays = new Date(year, month + 1, 0).getDate();
-      const today = new Date();
-
-      for (let i = 0; i < firstDayIndex; i++) {
-        grid.appendChild(document.createElement('div'));
-      }
-
-      for (let day = 1; day <= totalDays; day++) {
-        const dayDiv = document.createElement('div');
-        dayDiv.className = 'calendar-day';
-
-        const monthStr = String(month + 1).padStart(2, '0');
-        const dayStr = String(day).padStart(2, '0');
-        const dateKey = `${year}-${monthStr}-${dayStr}`;
-
-        const dayNumberSpan = document.createElement('span');
-        dayNumberSpan.textContent = day;
-        dayDiv.appendChild(dayNumberSpan);
-
-        if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
-          dayDiv.classList.add('today');
+  socket.on('chat-message', (data) => {
+    if (data.recipient && data.recipient !== 'All') {
+      for (let [id, user] of activeUsers.entries()) {
+        if (user === data.recipient || user === data.sender) {
+          io.to(id).emit('chat-message', data);
         }
-
-        if (calendarNotes[dateKey]) {
-          const indicator = document.createElement('div');
-          indicator.className = 'calendar-note-indicator';
-          indicator.textContent = calendarNotes[dateKey];
-          dayDiv.appendChild(indicator);
-        }
-
-        dayDiv.onclick = function() {
-          openCalendarNoteModal(dateKey);
-        };
-
-        grid.appendChild(dayDiv);
       }
+    } else {
+      const formattedMsg = `<b>${data.sender}:</b> ${data.text}`;
+      chatHistory += `\n${formattedMsg}`;
+      io.emit('chat-message', data);
     }
+  });
 
-    function openCalendarNoteModal(dateKey) {
-      const existingNote = calendarNotes[dateKey] || '';
-      const userNote = prompt(`Calendar Note for ${dateKey}:\n(Enter note or leave blank to delete)`, existingNote);
-      
-      if (userNote !== null) {
-        saveCalendarNote(dateKey, userNote.trim());
-      }
-    }
+  socket.on('disconnect', () => {
+    activeUsers.delete(socket.id);
+    io.emit('update-active-users', Array.from(new Set(activeUsers.values())));
+  });
+});
 
-    function syncBensonDateToCalendar(dateVal) {
-      if (!dateVal) return;
-      const notesVal = document.getElementById('bensonNotes').value.trim();
-      if (notesVal) {
-        saveCalendarNote(dateVal, notesVal);
-      }
-    }
-
-    function changeMonth(dir) {
-      navDate.setMonth(navDate.getMonth() + dir);
-      renderCalendar();
-    }
-
-    function loadContacts() {
-      fetch('/api/contacts')
-        .then(res => res.json())
-        .then(contacts => {
-          renderTables(contacts);
-        })
-        .catch(err => console.error('Failed to load contacts', err));
-    }
-
-    function addClient(event) {
-      event.preventDefault();
-      const lob = document.getElementById('lineOfBusiness').value;
-
-      let newContact = {};
-
-      if (lob === 'Dr. Benson') {
-        const fullName = document.getElementById('bensonName').value.trim();
-        const nameParts = fullName.split(' ');
-        const dateVal = document.getElementById('bensonDate').value;
-        const notesVal = document.getElementById('bensonNotes').value;
-
-        newContact = {
-          firstName: nameParts[0] || fullName,
-          lastName: nameParts.slice(1).join(' ') || '',
-          email: 'N/A',
-          phone: 'N/A',
-          dob: dateVal,
-          lineOfBusiness: 'Dr. Benson',
-          healthPlan: 'N/A',
-          insuranceLevel: 'N/A',
-          premium: '0.00',
-          moreDetails: notesVal,
-          address: 'N/A',
-          family: 'N/A',
-          user: currentUser
-        };
-
-        if (dateVal && notesVal) {
-          saveCalendarNote(dateVal, notesVal);
-        }
-      } else {
-        newContact = {
-          firstName: document.getElementById('firstName').value,
-          lastName: document.getElementById('lastName').value,
-          email: document.getElementById('email').value || 'N/A',
-          phone: document.getElementById('phone').value,
-          dob: document.getElementById('dob').value || 'N/A',
-          lineOfBusiness: lob,
-          healthPlan: document.getElementById('healthPlan').value,
-          insuranceLevel: document.getElementById('insuranceLevel').value,
-          premium: document.getElementById('premium').value || '0.00',
-          moreDetails: document.getElementById('moreDetails') ? document.getElementById('moreDetails').value || 'N/A' : 'N/A',
-          address: document.getElementById('address').value || 'N/A',
-          family: document.getElementById('family').value || 'N/A',
-          user: currentUser,
-          consentSent: false
-        };
-      }
-
-      fetch('/api/contacts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newContact)
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            const currentLob = document.getElementById('lineOfBusiness').value;
-            document.getElementById('clientForm').reset();
-            document.getElementById('lineOfBusiness').value = currentLob;
-            handleLineOfBusinessChange();
-            loadContacts();
-          }
-        });
-    }
-
-    function renderTables(contacts) {
-      const bensonBody = document.getElementById('bensonTableBody');
-      const acaBody = document.getElementById('clientTableBody');
-      bensonBody.innerHTML = '';
-      acaBody.innerHTML = '';
-
-      const acaDownloadContainer = document.getElementById('acaDownloadContainer');
-      const bensonDownloadContainer = document.getElementById('bensonDownloadContainer');
-      acaDownloadContainer.innerHTML = '';
-      bensonDownloadContainer.innerHTML = '';
-
-      if (isAdmin) {
-        acaDownloadContainer.innerHTML = `<a href="/api/download-excel?lob=ACA Health Care" class="btn-export">📥 Download ACA Records (CSV)</a>`;
-        bensonDownloadContainer.innerHTML = `<a href="/api/download-excel?lob=Dr. Benson" class="btn-export">📥 Download Dr. Benson Records (CSV)</a>`;
-      }
-
-      contacts.forEach(c => {
-        const row = document.createElement('tr');
-        if (c.lineOfBusiness === 'Dr. Benson') {
-          row.innerHTML = `
-            <td>#${c.id}</td>
-            <td><b>${c.firstName} ${c.lastName}</b></td>
-            <td>${c.dob}</td>
-            <td>${c.moreDetails}</td>
-            <td>${c.user}</td>
-          `;
-          bensonBody.appendChild(row);
-        } else {
-          const consentStatusBadge = c.consentSent 
-            ? `<span style="color: #059669; font-weight: bold;">Yes</span>` 
-            : `<span style="color: #dc2626; font-weight: bold;">No</span>`;
-
-          row.innerHTML = `
-            <td>#${c.id}</td>
-            <td><b>${c.firstName} ${c.lastName}</b><br><small style="color:#64748b;">DOB: ${c.dob}</small></td>
-            <td>${c.email}<br>${c.phone}</td>
-            <td><span class="badge-insurance">${c.lineOfBusiness || 'ACA Health Care'}</span></td>
-            <td><b>${c.healthPlan || 'N/A'}</b></td>
-            <td><b>${c.insuranceLevel || 'N/A'}</b></td>
-            <td>$${c.premium || '0.00'}</td>
-            <td>${c.address}<br><small style="color:#64748b;">${c.family}</small></td>
-            <td>${c.moreDetails || 'N/A'}</td>
-            <td>${c.user}</td>
-            <td style="text-align: center;">${consentStatusBadge}</td>
-            <td>
-              <button onclick="triggerACAConsent('${c.id}', '${c.firstName || ''} ${c.lastName || ''}', '${c.email || ''}', '${c.dob || ''}', '${c.healthPlan || 'Selected Plan'}', '${c.insuranceLevel || 'Standard'}')" 
-                      style="background-color: #2563eb; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">
-                Send Consent
-              </button>
-            </td>
-          `;
-          acaBody.appendChild(row);
-        }
-      });
-    }
-
-    function openTopConsentGenerator() {
-      const clientName = prompt("Enter Client Full Name for Consent Form:");
-      if (!clientName) return;
-      
-      const clientEmail = prompt("Enter Client Email Address:");
-      if (!clientEmail) return;
-
-      const clientDob = prompt("Enter Client Date of Birth (DOB):", "mm/dd/yyyy");
-      const carrier = prompt("Enter Health Plan Carrier:", "Molina / Blue Cross");
-      const level = prompt("Enter Insurance Level:", "Silver / Bronze");
-
-      generateAndSendConsent(null, clientName, clientEmail, clientDob, carrier, level);
-    }
-
-    function triggerACAConsent(contactId, clientName, clientEmail, clientDob, carrier, level) {
-      if (!clientEmail || clientEmail === 'client@email.com' || clientEmail.trim() === '') {
-        alert('⚠️ Please update the client email address before sending the consent form.');
-        return;
-      }
-
-      const confirmed = confirm(
-        `Confirm Consent Agreement\n\nClient: ${clientName}\nDOB: ${clientDob}\nEmail: ${clientEmail}\nPlan: ${carrier} (${level})\n\nClick OK to generate and display the consent agreement.`
-      );
-
-      if (!confirmed) return;
-
-      generateAndSendConsent(contactId, clientName, clientEmail, clientDob, carrier, level);
-    }
-
-    function generateAndSendConsent(contactId, clientName, clientEmail, clientDob, carrier, level) {
-      const subject = `Health Insurance Agent Consent Agreement - ${clientName}`;
-      const agentsList = "Douglas Wynn (7081783), Paris Smith (17612778), Virlyn Wynn (17801408)";
-      const selectedPlanText = `${carrier || 'ACA Health Plan'} (${level || 'Standard'})`;
-
-      const completedConsentBody = `To: ${clientEmail || 'client@email.com'}
-CC: YourInsuranceToday2020@gmail.com
-Subject: ${subject}
-
-Hello ${clientName},
-
-Your health insurance agent/broker consent agreement has been automatically generated with your information for your records and review:
-
---------------------------------------------------
-CLIENT INFORMATION:
-- Full Name: ${clientName}
-- Date of Birth (DOB): ${clientDob || 'N/A'}
-- Proposed Insurance Plan: ${selectedPlanText}
-
-APPOINTED AGENTS & BROKERS:
-- ${agentsList}
---------------------------------------------------
-
-AGREEMENT TERMS:
-I give permission to the above-mentioned agent/agency to serve as the health insurance agent for myself and my entire household (if applicable) for enrollment in a Qualified Health Plan offered on the Georgia State-based Exchange (Georgia Access) & the FFM Marketplace (Healthcare.gov) and approved portals.
-
-1. I give permission to access my information for the purpose of helping me complete an application for eligibility and enrollment in a Qualified Health Plan or other insurance affordability programs, such as Medicaid and PeachCare for Kids® (CHIP) or advance tax credits.
-2. I agree that I have been informed and agree with all the disclaimers included in my exchange application.
-3. I understand the plan(s) I am being enrolled in (${selectedPlanText}) and agree that I wish to be enrolled in that plan. I understand I may cancel delegation anytime via Georgia Access (1-888-687-1503) or Healthcare.gov (1-800-318-2596).
-4. Future Assistance: [X] Agent and agency permission to maintain information and change plans in the future without requiring new consent.
-
-If you decide to work with another agent in the future, please contact Douglas Wynn at 888-360-KARE or YourInsuranceToday2020@gmail.com.`.trim();
-
-      if (contactId) {
-        fetch('/api/send-consent', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contactId, clientName, clientEmail })
-        })
-        .then(() => {
-          loadContacts();
-        })
-        .catch(err => console.log('Activity logged'));
-      }
-
-      let modal = document.getElementById('consentModal');
-      if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'consentModal';
-        modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.8); display:flex; justify-content:center; align-items:center; z-index:9999;';
-        document.body.appendChild(modal);
-      }
-
-      modal.innerHTML = `
-        <div style="background:white; width:700px; max-height:85vh; padding:30px; border-radius:12px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.2); display:flex; flex-direction:column;">
-          <h2 style="margin-top:0; color:#2563eb; border-bottom:2px solid #e2e8f0; padding-bottom:10px;">ACA Health Insurance Consent Agreement</h2>
-          <p style="margin:5px 0 15px 0; font-size:13px; color:#64748b;"><b>Client:</b> ${clientName} | <b>Email:</b> ${clientEmail}</p>
-          <textarea id="modalConsentText" style="width:100%; height:320px; padding:12px; font-family:monospace; font-size:12px; border:1px solid #cbd5e1; border-radius:6px; background:#f8fafc; box-sizing:border-box;" readonly>${completedConsentBody}</textarea>
-          <div style="margin-top:20px; display:flex; justify-content:space-between; align-items:center;">
-            <span id="copyStatus" style="color:#059669; font-weight:bold; font-size:13px;"></span>
-            <div style="display:flex; gap:10px;">
-              <button onclick="navigator.clipboard.writeText(document.getElementById('modalConsentText').value).then(() => document.getElementById('copyStatus').textContent = '✅ Copied text for Gmail!')" style="background:#059669; color:white; border:none; padding:10px 18px; border-radius:6px; cursor:pointer; font-weight:bold;">📋 Copy Text</button>
-              <button onclick="window.print()" style="background:#2563eb; color:white; border:none; padding:10px 18px; border-radius:6px; cursor:pointer; font-weight:bold;">🖨️ Print / Save PDF</button>
-              <button onclick="document.getElementById('consentModal').remove()" style="background:#64748b; color:white; border:none; padding:10px 18px; border-radius:6px; cursor:pointer; font-weight:bold;">✕ Close</button>
-            </div>
-          </div>
-        </div>
-      `;
-      modal.style.display = 'flex';
-    }
-
-    function filterBensonTable() {
-      let input = document.getElementById('searchBensonInput');
-      let filter = input.value.toLowerCase();
-      let table = document.getElementById('bensonTable');
-      let tr = table.getElementsByTagName('tr');
-
-      for (let i = 1; i < tr.length; i++) {
-        let tdText = tr[i].textContent || tr[i].innerText;
-        tr[i].style.display = tdText.toLowerCase().indexOf(filter) > -1 ? "" : "none";
-      }
-    }
-
-    function filterTable() {
-      let input = document.getElementById('searchInput');
-      let filter = input.value.toLowerCase();
-      let table = document.getElementById('clientTable');
-      let tr = table.getElementsByTagName('tr');
-
-      for (let i = 1; i < tr.length; i++) {
-        let tdText = tr[i].textContent || tr[i].innerText;
-        tr[i].style.display = tdText.toLowerCase().indexOf(filter) > -1 ? "" : "none";
-      }
-    }
-
-    function toggleChatPopup() {
-      const popup = document.getElementById('chatPopup');
-      popup.classList.toggle('active');
-      isChatOpen = popup.classList.contains('active');
-
-      if (isChatOpen) {
-        unreadCount = 0;
-        const badge = document.getElementById('chatBadge');
-        badge.textContent = '0';
-        badge.style.display = 'none';
-      }
-    }
-
-    socket.on('chat-history', (history) => {
-      document.getElementById('chatLog').innerHTML = `<div class="chat-msg"><i>${history.replace(/\n/g, '<br>')}</i></div>`;
-    });
-
-    socket.on('chat-message', (data) => {
-      const chatLog = document.getElementById('chatLog');
-      
-      const isPrivate = data.recipient && data.recipient !== 'All';
-      const msgClass = isPrivate ? 'chat-msg private' : 'chat-msg';
-      const labelPrefix = isPrivate ? `[Private to ${data.recipient}] ` : '';
-
-      chatLog.innerHTML += `<div class="${msgClass}"><b>${labelPrefix}${data.sender}:</b> ${data.text}</div>`;
-      chatLog.scrollTop = chatLog.scrollHeight;
-
-      if (data.sender !== currentUser && !isChatOpen) {
-        unreadCount++;
-        const badge = document.getElementById('chatBadge');
-        badge.textContent = unreadCount;
-        badge.style.display = 'inline-block';
-      }
-    });
-
-    function sendMessage() {
-      const input = document.getElementById('chatInput');
-      const recipientSelect = document.getElementById('chatRecipient');
-      const text = input.value.trim();
-      
-      if (text !== '') {
-        const recipient = recipientSelect ? recipientSelect.value : 'All';
-        socket.emit('chat-message', { sender: currentUser, recipient: recipient, text: text });
-        input.value = '';
-      }
-    }
-
-    function checkEnter(event) {
-      if (event.key === 'Enter') {
-        sendMessage();
-      }
-    }
-
-    function clearChatRoom() {
-      if (confirm('Are you sure you want to clear the office chat history?')) {
-        socket.emit('clear-chat');
-      }
-    }
-
-    socket.on('clear-chat-client', () => {
-      document.getElementById('chatLog').innerHTML = `<div class="chat-msg"><i>Welcome to Office Live Chat!</i></div>`;
-    });
-  </script>
-
-</body>
-
-</html>
+server.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
