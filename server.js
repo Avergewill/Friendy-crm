@@ -29,7 +29,15 @@ function readData(file) {
   if (!fs.existsSync(file)) {
     if (file === USERS_FILE) {
       const defaultUsers = [
-        { username: 'Wyn', password: 'WynnaJLkRX2FNhVSncs', isAdmin: true, registeredAt: new Date().toISOString() },
+        { username: 'WilmerS', password: 'WynnaJLkRX2FNhVSncs', isAdmin: true, registeredAt: new Date().toISOString() },
+         { username: 'Santi', password: 'JLkRX2FNhVSncs', isAdmin: true, registeredAt: new Date().toISOString() },
+         { username: 'JC', password: 'JLkRX2FNhVSncs', isAdmin: true, registeredAt: new Date().toISOString() },
+         { username: 'John', password: 'JLkRX2FNhVSncs', isAdmin: true, registeredAt: new Date().toISOString() },
+         { username: 'Rodolfo', password: 'WynnaJLkRX2FNhVSncs', isAdmin: true, registeredAt: new Date().toISOString() },
+         { username: 'Douglas', password: 'WynnaJLkRX2FNhVSncs', isAdmin: true, registeredAt: new Date().toISOString() },
+       { username: 'Michael', password: 'WynnaJLkRX2FNhVSncs', isAdmin: true, registeredAt: new Date().toISOString() },
+        { username: 'George', password: 'WynnaJLkRX2FNhVSncs', isAdmin: true, registeredAt: new Date().toISOString() },
+        { username: 'user', password: 'WynnaJLkRX2FNhVSncs', isAdmin: true, registeredAt: new Date().toISOString() },
     
       ];
       writeData(USERS_FILE, defaultUsers);
