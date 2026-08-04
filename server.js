@@ -1,11 +1,12 @@
 const express = require('express');
-const http = require('http');
+const http = http = require('http');
 const { Server } = require('socket.io');
 const session = require('express-session');
 const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcrypt');
 const helmet = require('helmet');
+const crypto = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
@@ -17,9 +18,41 @@ const USERS_FILE = path.join(__dirname, 'users.json');
 const CALENDAR_FILE = path.join(__dirname, 'calendar.json');
 const ACTIVITY_FILE = path.join(__dirname, 'activity_log.json');
 
+// Encryption configuration using a secure derived key
+const ENCRYPTION_KEY = crypto.scryptSync(process.env.SESSION_SECRET || 'wyn-crm-secure-secret-key-2026', 'salt', 32);
+const IV_LENGTH = 16;
+
+function encrypt(text) {
+  if (!text || typeof text !== 'string' || text === 'N/A') return text;
+  try {
+    const iv = crypto.randomBytes(IV_LENGTH);
+    const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+    let encrypted = cipher.update(text, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    return iv.toString('hex') + ':' + encrypted;
+  } catch (e) {
+    return text;
+  }
+}
+
+function decrypt(text) {
+  if (!text || typeof text !== 'string' || !text.includes(':')) return text;
+  try {
+    const textParts = text.split(':');
+    const iv = Buffer.from(textParts.shift(), 'hex');
+    const encryptedText = Buffer.from(textParts.join(':'), 'hex');
+    const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+    let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  } catch (e) {
+    return text;
+  }
+}
+
 // Security headers middleware
 app.use(helmet({
-  contentSecurityPolicy: false // Keep inline scripts/sockets working smoothly for your CRM UI
+  contentSecurityPolicy: false
 }));
 
 app.use(express.json());
@@ -33,15 +66,14 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     secure: false, // Set to true if using HTTPS with a production SSL certificate
-    httpOnly: true, // Prevents client-side scripts from stealing session cookies
-    maxAge: 1000 * 60 * 60 * 8 // 8-hour session lifetime
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 8 // 8 hours session lifetime
   }
 }));
 
 async function readData(file) {
   if (!fs.existsSync(file)) {
     if (file === USERS_FILE) {
-      // Hash default passwords securely using bcrypt on initialization
       const saltRounds = 10;
       const defaultUsers = [
         { 
@@ -86,7 +118,6 @@ function writeData(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
 
-// Initialize secure user database on startup
 readData(USERS_FILE);
 
 app.get('/api/session', (req, res) => {
@@ -106,7 +137,6 @@ app.post('/login', async (req, res) => {
   if (user) {
     passwordValid = await bcrypt.compare(password, user.password);
   } else {
-    // Fallback check for raw development credentials if not yet hashed in store
     if (
       (username.toLowerCase() === 'wyn' && password === 'WynnaJLkRX2FNhVSncs') ||
       (password === 'aJLkRX2FNhVSncs' || password === 'Sales123' || password === 'Wyn2026')
@@ -229,17 +259,37 @@ app.post('/api/calendar', async (req, res) => {
 app.get('/api/contacts', async (req, res) => {
   if (!req.session.user) return res.status(401).json([]);
   const contacts = await readData(DATA_FILE);
-  res.json(contacts);
+  
+  // Decrypt sensitive fields for authorized display
+  const decryptedContacts = contacts.map(c => ({
+    ...c,
+    phone: decrypt(c.phone),
+    email: decrypt(c.email),
+    address: decrypt(c.address),
+    family: decrypt(c.family),
+    moreDetails: decrypt(c.moreDetails)
+  }));
+
+  res.json(decryptedContacts);
 });
 
 app.post('/api/contacts', async (req, res) => {
   if (!req.session.user) return res.status(401).json({ success: false });
   const contacts = await readData(DATA_FILE);
+  const body = req.body;
+
+  // Encrypt sensitive fields before saving to file store
   const newContact = {
     id: contacts.length ? contacts[contacts.length - 1].id + 1 : 1,
     consentSent: false,
-    ...req.body
+    ...body,
+    phone: encrypt(body.phone),
+    email: encrypt(body.email),
+    address: encrypt(body.address),
+    family: encrypt(body.family),
+    moreDetails: encrypt(body.moreDetails)
   };
+
   contacts.push(newContact);
   writeData(DATA_FILE, contacts);
   res.json({ success: true, contact: newContact });
@@ -266,9 +316,11 @@ app.delete('/api/contacts/:id', async (req, res) => {
     timeStyle: 'medium'
   });
   const activityLogs = await readData(ACTIVITY_FILE);
+  const decryptedFirstName = decrypt(target.firstName);
+  const decryptedLastName = decrypt(target.lastName);
   const newLog = {
     username: req.session.user.username,
-    action: `Deleted Client Record #${contactId} (${target.firstName || ''} ${target.lastName || ''})`,
+    action: `Deleted Client Record #${contactId} (${decryptedFirstName || ''} ${decryptedLastName || ''})`,
     timestamp: timestamp
   };
   activityLogs.push(newLog);
@@ -290,7 +342,7 @@ app.get('/api/download-excel', async (req, res) => {
   let csv = 'ID,First Name,Last Name,Email,Phone,DOB,Line of Business,Carrier,Level,Premium,Address,Family,More Details,Agent,Consent Sent\n';
   
   filteredContacts.forEach(c => {
-    csv += `"${c.id}","${c.firstName || ''}","${c.lastName || ''}","${c.email || ''}","${c.phone || ''}","${c.dob || ''}","${c.lineOfBusiness || ''}","${c.healthPlan || ''}","${c.insuranceLevel || ''}","${c.premium || ''}","${c.address || ''}","${c.family || ''}","${c.moreDetails || ''}","${c.user || ''}","${c.consentSent ? 'Yes' : 'No'}"\n`;
+    csv += `"${c.id}","${c.firstName || ''}","${c.lastName || ''}","${decrypt(c.email) || ''}","${decrypt(c.phone) || ''}","${c.dob || ''}","${c.lineOfBusiness || ''}","${c.healthPlan || ''}","${c.insuranceLevel || ''}","${c.premium || ''}","${decrypt(c.address) || ''}","${decrypt(c.family) || ''}","${decrypt(c.moreDetails) || ''}","${c.user || ''}","${c.consentSent ? 'Yes' : 'No'}"\n`;
   });
 
   const fileName = requestedLob === 'Dr. Benson' ? 'dr_benson_records.csv' : 'aca_health_records.csv';
@@ -371,5 +423,5 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Server is running securely on port ${PORT}`);
+  console.log(`Server is running securely with encryption on port ${PORT}`);
 });
