@@ -1520,23 +1520,56 @@ If you decide to work with another agent in the future, please contact Douglas W
         <div style="background:white; width:750px; max-height:85vh; padding:30px; border-radius:12px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.2); display:flex; flex-direction:column;">
           <h2 style="margin-top:0; color:#2563eb; border-bottom:2px solid #e2e8f0; padding-bottom:10px;">ACA Health Insurance Consent Agreement</h2>
           
-          <!-- Dedicated printable container -->
-          <div id="consentPrintArea" style="flex:1; overflow-y:auto; margin-top:10px;">
-            <p style="margin:5px 0 15px 0; font-size:13px; color:#64748b;"><b>Client:</b> ${clientName} | <b>Email:</b> ${clientEmail}</p>
-            <div style="width:100%; padding:15px; font-family:'Segoe UI', Tahoma, sans-serif; font-size:13px; line-height:1.6; border:1px solid #cbd5e1; border-radius:6px; background:#f8fafc; white-space:pre-wrap; box-sizing:border-box; color:#1e293b;">${completedConsentBody}</div>
-          </div>
-
-          <div class="no-print" style="margin-top:20px; display:flex; justify-content:space-between; align-items:center;">
-            <span id="copyStatus" style="color:#059669; font-weight:bold; font-size:13px;"></span>
-            <div style="display:flex; gap:10px;">
-              <button onclick="navigator.clipboard.writeText(${JSON.stringify(completedConsentBody)}).then(() => document.getElementById('copyStatus').textContent = '✅ Copied text for Gmail!')" style="background:#059669; color:white; border:none; padding:10px 18px; border-radius:6px; cursor:pointer; font-weight:bold;">📋 Copy Text</button>
-              <button onclick="window.print()" style="background:#2563eb; color:white; border:none; padding:10px 18px; border-radius:6px; cursor:pointer; font-weight:bold;">🖨️ Print / Save PDF</button>
-              <button onclick="document.getElementById('consentModal').remove()" style="background:#64748b; color:white; border:none; padding:10px 18px; border-radius:6px; cursor:pointer; font-weight:bold;">✕ Close</button>
-            </div>
-          </div>
-        </div>
-      `;
-      modal.style.display = 'flex';
+        /* Print styling to format consent form text clean for one single page */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #consentModal, #consentModal * {
+        visibility: visible;
+      }
+      #consentModal {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100vw;
+        height: 100vh;
+        background: white !important;
+        display: flex !important;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 0;
+        margin: 0;
+        box-shadow: none;
+        z-index: 99999;
+      }
+      #consentModal > div {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100vh !important;
+        max-height: 100vh !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 10px 20px !important;
+      }
+      #consentPrintArea {
+        max-height: none !important;
+        overflow: visible !important;
+      }
+      #consentPrintArea div {
+        font-size: 11px !important;
+        line-height: 1.35 !important;
+        padding: 10px !important;
+        background: white !important;
+        border: 1px solid #94a3b8 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      @page {
+        size: portrait;
+        margin: 0.5in;
+      }
     }
 
     function filterBensonTable() {
