@@ -28,7 +28,6 @@ app.use(session({
 function readData(file) {
   if (!fs.existsSync(file)) {
     if (file === USERS_FILE) {
-      // Default users with requested standard passwords
       const defaultUsers = [
         { username: 'Wyn', password: 'WynnaJLkRX2FNhVSncs', isAdmin: true, registeredAt: new Date().toISOString() },
         { username: 'Douglas', password: 'aJLkRX2FNhVSncs', isAdmin: false, registeredAt: new Date().toISOString() },
@@ -52,7 +51,6 @@ function writeData(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
 
-// Ensure initial users file exists on startup
 readData(USERS_FILE);
 
 app.get('/api/session', (req, res) => {
@@ -206,7 +204,6 @@ app.delete('/api/contacts/:id', (req, res) => {
   contacts = contacts.filter(c => c.id !== contactId);
   writeData(DATA_FILE, contacts);
 
-  // Log activity
   const timestamp = new Date().toLocaleString('en-US', {
     timeZone: 'America/Bogota',
     dateStyle: 'medium',
