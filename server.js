@@ -1,5 +1,5 @@
 const express = require('express');
-const http = http = require('http');
+const http = require('http');
 const { Server } = require('socket.io');
 const session = require('express-session');
 const path = require('path');
@@ -65,7 +65,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // Set to true if using HTTPS with a production SSL certificate
+    secure: false, 
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 8 // 8 hours session lifetime
   }
@@ -260,7 +260,6 @@ app.get('/api/contacts', async (req, res) => {
   if (!req.session.user) return res.status(401).json([]);
   const contacts = await readData(DATA_FILE);
   
-  // Decrypt sensitive fields for authorized display
   const decryptedContacts = contacts.map(c => ({
     ...c,
     phone: decrypt(c.phone),
@@ -278,7 +277,6 @@ app.post('/api/contacts', async (req, res) => {
   const contacts = await readData(DATA_FILE);
   const body = req.body;
 
-  // Encrypt sensitive fields before saving to file store
   const newContact = {
     id: contacts.length ? contacts[contacts.length - 1].id + 1 : 1,
     consentSent: false,
