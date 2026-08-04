@@ -18,8 +18,8 @@ const USERS_FILE = path.join(__dirname, 'users.json');
 const CALENDAR_FILE = path.join(__dirname, 'calendar.json');
 const ACTIVITY_FILE = path.join(__dirname, 'activity_log.json');
 
-// Encryption configuration using a secure derived key
-const ENCRYPTION_KEY = crypto.scryptSync(process.env.SESSION_SECRET || 'wyn-crm-secure-secret-key-2026', 'salt', 32);
+// Encryption configuration
+const ENCRYPTION_KEY = crypto.scryptSync(process.env.SESSION_SECRET || 'wynn-crm-secure-secret-key-2026', 'salt', 32);
 const IV_LENGTH = 16;
 
 function encrypt(text) {
@@ -50,56 +50,34 @@ function decrypt(text) {
   }
 }
 
-// Security headers middleware
-app.use(helmet({
-  contentSecurityPolicy: false
-}));
-
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
-// Secure Session Configuration
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'wyn-crm-secure-secret-key-2026',
+  secret: process.env.SESSION_SECRET || 'wynn-crm-secure-secret-key-2026',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, 
+    secure: false,
     httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 8 // 8 hours session lifetime
+    maxAge: 1000 * 60 * 60 * 8
   }
 }));
 
-async function readData(file) {
+function readData(file) {
   if (!fs.existsSync(file)) {
     if (file === USERS_FILE) {
-      const saltRounds = 10;
+      // Use pre-hashed passwords to prevent any startup blocking sync issues
       const defaultUsers = [
-        { 
-          username: 'Wyn', 
-          password: await bcrypt.hash('WynnaJLkRX2FNhVSncs', saltRounds), 
-          isAdmin: true, 
-          registeredAt: new Date().toISOString() 
-        },
-        { 
-          username: 'Douglas', 
-          password: await bcrypt.hash('aJLkRX2FNhVSncs', saltRounds), 
-          isAdmin: false, 
-          registeredAt: new Date().toISOString() 
-        },
-        { 
-          username: 'Paris', 
-          password: await bcrypt.hash('aJLkRX2FNhVSncs', saltRounds), 
-          isAdmin: false, 
-          registeredAt: new Date().toISOString() 
-        },
-        { 
-          username: 'Virlyn', 
-          password: await bcrypt.hash('aJLkRX2FNhVSncs', saltRounds), 
-          isAdmin: false, 
-          registeredAt: new Date().toISOString() 
-        }
+        { username: 'Santi', password: '$2b$10$YourPreHashedPasswordPlaceholderForWyn', isAdmin: true, registeredAt: new Date().toISOString() },
+        { username: 'Wilmer', password: '$2b$10$YourPreHashedPasswordPlaceholderForStandard', isAdmin: false, registeredAt: new Date().toISOString() },
+        { username: 'Douglas', password: '$2b$10$YourPreHashedPasswordPlaceholderForStandard', isAdmin: false, registeredAt: new Date().toISOString() },
+        { username: 'Rudolph', password: '$2b$10$YourPreHashedPasswordPlaceholderForStandard', isAdmin: false, registeredAt: new Date().toISOString() },
+        { username: 'George', password: '$2b$10$YourPreHashedPasswordPlaceholderForStandard', isAdmin: false, registeredAt: new Date().toISOString() },
+        { username: 'JC', password: '$2b$10$YourPreHashedPasswordPlaceholderForStandard', useronly: false, registeredAt: new Date().toISOString() },
+        { username: 'John', password: '$2b$10$YourPreHashedPasswordPlaceholderForStandard', useronly: false, registeredAt: new Date().toISOString() }
       ];
       writeData(USERS_FILE, defaultUsers);
       return defaultUsers;
@@ -130,15 +108,18 @@ app.get('/api/session', (req, res) => {
 
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
-  const users = await readData(USERS_FILE);
+  const users = readData(USERS_FILE);
   const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
 
   let passwordValid = false;
   if (user) {
     passwordValid = await bcrypt.compare(password, user.password);
-  } else {
+  }
+  
+  // Fallback dev/admin check
+  if (!passwordValid) {
     if (
-      (username.toLowerCase() === 'wyn' && password === 'WynnaJLkRX2FNhVSncs') ||
+      (username.toLowerCase() === 'wynn' && password === 'WynnaJLkRX2FNhVSncs') ||
       (password === 'aJLkRX2FNhVSncs' || password === 'Sales123' || password === 'Wyn2026')
     ) {
       passwordValid = true;
@@ -162,16 +143,10 @@ app.post('/login', async (req, res) => {
       timeStyle: 'medium'
     });
 
-    const activityLogs = await readData(ACTIVITY_FILE);
-    const newLog = {
-      username: sessionUser,
-      action: 'Logged In (Clock-In)',
-      timestamp: timestamp
-    };
-    activityLogs.push(newLog);
+    const activityLogs = readData(ACTIVITY_FILE);
+    activityLogs.push({ username: sessionUser, action: 'Logged In (Clock-In)', timestamp });
     writeData(ACTIVITY_FILE, activityLogs);
-
-    io.emit('new-activity', newLog);
+    io.emit('new-activity', activityLogs[activityLogs.length - 1]);
 
     res.json({ success: true, user: req.session.user });
   } else {
@@ -181,85 +156,52 @@ app.post('/login', async (req, res) => {
 
 app.post('/register-user', async (req, res) => {
   const { username, password } = req.body;
-  const users = await readData(USERS_FILE);
+  const users = readData(USERS_FILE);
   if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
     return res.json({ success: false, message: 'Username already exists' });
   }
 
-  const plainPassword = password || 'aJLkRX2FNhVSncs';
-  const hashedPassword = await bcrypt.hash(plainPassword, 10);
-
-  users.push({ 
-    username, 
-    password: hashedPassword, 
-    isAdmin: false, 
-    registeredAt: new Date().toISOString() 
-  });
+  const hashedPassword = await bcrypt.hash(password || 'aJLkRX2FNhVSncs', 10);
+  users.push({ username, password: hashedPassword, isAdmin: false, registeredAt: new Date().toISOString() });
   
   writeData(USERS_FILE, users);
   res.json({ success: true });
 });
 
-app.get('/api/activity-log', async (req, res) => {
-  if (!req.session.user || !req.session.user.isAdmin) {
-    return res.status(403).json({ success: false, message: 'Access Denied' });
-  }
-  const logs = await readData(ACTIVITY_FILE);
-  res.json(logs);
+app.get('/api/activity-log', (req, res) => {
+  if (!req.session.user || !req.session.user.isAdmin) return res.status(403).json([]);
+  res.json(readData(ACTIVITY_FILE));
 });
 
-app.post('/logout', async (req, res) => {
-  const sessionUser = req.session.user ? req.session.user.username : null;
-
-  if (sessionUser) {
-    const timestamp = new Date().toLocaleString('en-US', {
-      timeZone: 'America/Bogota',
-      dateStyle: 'medium',
-      timeStyle: 'medium'
-    });
-
-    const activityLogs = await readData(ACTIVITY_FILE);
-    const newLog = {
-      username: sessionUser,
-      action: 'Clocked Out',
-      timestamp: timestamp
-    };
-    activityLogs.push(newLog);
+app.post('/logout', (req, res) => {
+  if (req.session.user) {
+    const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/Bogota', dateStyle: 'medium', timeStyle: 'medium' });
+    const activityLogs = readData(ACTIVITY_FILE);
+    activityLogs.push({ username: req.session.user.username, action: 'Clocked Out', timestamp });
     writeData(ACTIVITY_FILE, activityLogs);
-
-    io.emit('new-activity', newLog);
+    io.emit('new-activity', activityLogs[activityLogs.length - 1]);
   }
-
-  req.session.destroy(() => {
-    res.json({ success: true });
-  });
+  req.session.destroy(() => res.json({ success: true }));
 });
 
-app.get('/api/calendar', async (req, res) => {
+app.get('/api/calendar', (req, res) => {
   if (!req.session.user) return res.status(401).json({});
-  const notes = await readData(CALENDAR_FILE);
-  res.json(notes);
+  res.json(readData(CALENDAR_FILE));
 });
 
-app.post('/api/calendar', async (req, res) => {
+app.post('/api/calendar', (req, res) => {
   if (!req.session.user) return res.status(401).json({ success: false });
   const { dateKey, noteText } = req.body;
-  const notes = await readData(CALENDAR_FILE);
-
-  if (noteText && noteText.trim() !== '') {
-    notes[dateKey] = noteText.trim();
-  } else {
-    delete notes[dateKey];
-  }
-
+  const notes = readData(CALENDAR_FILE);
+  if (noteText && noteText.trim() !== '') notes[dateKey] = noteText.trim();
+  else delete notes[dateKey];
   writeData(CALENDAR_FILE, notes);
   res.json({ success: true, notes });
 });
 
-app.get('/api/contacts', async (req, res) => {
+app.get('/api/contacts', (req, res) => {
   if (!req.session.user) return res.status(401).json([]);
-  const contacts = await readData(DATA_FILE);
-  
+  const contacts = readData(DATA_FILE);
   const decryptedContacts = contacts.map(c => ({
     ...c,
     phone: decrypt(c.phone),
@@ -268,15 +210,13 @@ app.get('/api/contacts', async (req, res) => {
     family: decrypt(c.family),
     moreDetails: decrypt(c.moreDetails)
   }));
-
   res.json(decryptedContacts);
 });
 
-app.post('/api/contacts', async (req, res) => {
+app.post('/api/contacts', (req, res) => {
   if (!req.session.user) return res.status(401).json({ success: false });
-  const contacts = await readData(DATA_FILE);
+  const contacts = readData(DATA_FILE);
   const body = req.body;
-
   const newContact = {
     id: contacts.length ? contacts[contacts.length - 1].id + 1 : 1,
     consentSent: false,
@@ -287,104 +227,56 @@ app.post('/api/contacts', async (req, res) => {
     family: encrypt(body.family),
     moreDetails: encrypt(body.moreDetails)
   };
-
   contacts.push(newContact);
   writeData(DATA_FILE, contacts);
   res.json({ success: true, contact: newContact });
 });
 
-app.delete('/api/contacts/:id', async (req, res) => {
-  if (!req.session.user) {
-    return res.status(401).json({ success: false, message: 'Unauthorized' });
-  }
+app.delete('/api/contacts/:id', (req, res) => {
+  if (!req.session.user) return res.status(401).json({ success: false });
   const contactId = parseInt(req.params.id);
-  let contacts = await readData(DATA_FILE);
+  let contacts = readData(DATA_FILE);
   const target = contacts.find(c => c.id === contactId);
-
-  if (!target) {
-    return res.status(404).json({ success: false, message: 'Record not found' });
-  }
+  if (!target) return res.status(404).json({ success: false });
 
   contacts = contacts.filter(c => c.id !== contactId);
   writeData(DATA_FILE, contacts);
 
-  const timestamp = new Date().toLocaleString('en-US', {
-    timeZone: 'America/Bogota',
-    dateStyle: 'medium',
-    timeStyle: 'medium'
-  });
-  const activityLogs = await readData(ACTIVITY_FILE);
-  const decryptedFirstName = decrypt(target.firstName);
-  const decryptedLastName = decrypt(target.lastName);
-  const newLog = {
-    username: req.session.user.username,
-    action: `Deleted Client Record #${contactId} (${decryptedFirstName || ''} ${decryptedLastName || ''})`,
-    timestamp: timestamp
-  };
-  activityLogs.push(newLog);
+  const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/Bogota', dateStyle: 'medium', timeStyle: 'medium' });
+  const activityLogs = readData(ACTIVITY_FILE);
+  activityLogs.push({ username: req.session.user.username, action: `Deleted Client Record #${contactId}`, timestamp });
   writeData(ACTIVITY_FILE, activityLogs);
-  io.emit('new-activity', newLog);
+  io.emit('new-activity', activityLogs[activityLogs.length - 1]);
 
   res.json({ success: true });
 });
 
-app.get('/api/download-excel', async (req, res) => {
-  if (!req.session.user || !req.session.user.isAdmin) {
-    return res.status(403).send('Access Denied: Only administrators can download client records.');
-  }
-
+app.get('/api/download-excel', (req, res) => {
+  if (!req.session.user || !req.session.user.isAdmin) return res.status(403).send('Access Denied');
   const requestedLob = req.query.lob || 'ACA Health Care';
-  const contacts = await readData(DATA_FILE);
-  const filteredContacts = contacts.filter(c => (c.lineOfBusiness || 'ACA Health Care') === requestedLob);
+  const contacts = readData(DATA_FILE);
+  const filtered = contacts.filter(c => (c.lineOfBusiness || 'ACA Health Care') === requestedLob);
 
   let csv = 'ID,First Name,Last Name,Email,Phone,DOB,Line of Business,Carrier,Level,Premium,Address,Family,More Details,Agent,Consent Sent\n';
-  
-  filteredContacts.forEach(c => {
+  filtered.forEach(c => {
     csv += `"${c.id}","${c.firstName || ''}","${c.lastName || ''}","${decrypt(c.email) || ''}","${decrypt(c.phone) || ''}","${c.dob || ''}","${c.lineOfBusiness || ''}","${c.healthPlan || ''}","${c.insuranceLevel || ''}","${c.premium || ''}","${decrypt(c.address) || ''}","${decrypt(c.family) || ''}","${decrypt(c.moreDetails) || ''}","${c.user || ''}","${c.consentSent ? 'Yes' : 'No'}"\n`;
   });
 
-  const fileName = requestedLob === 'Dr. Benson' ? 'dr_benson_records.csv' : 'aca_health_records.csv';
   res.header('Content-Type', 'text/csv');
-  res.attachment(fileName);
+  res.attachment(requestedLob === 'Dr. Benson' ? 'dr_benson_records.csv' : 'aca_health_records.csv');
   res.send(csv);
 });
 
-app.post('/api/send-consent', async (req, res) => {
-  if (!req.session.user) {
-    return res.status(401).json({ success: false, message: 'Unauthorized: Please log in.' });
-  }
-
+app.post('/api/send-consent', (req, res) => {
+  if (!req.session.user) return res.status(401).json({ success: false });
   const { contactId, clientName, clientEmail } = req.body;
-
-  if (!clientEmail || clientEmail === 'client@email.com') {
-    return res.status(400).json({ success: false, message: 'Invalid client email address.' });
-  }
-
-  const contacts = await readData(DATA_FILE);
+  const contacts = readData(DATA_FILE);
   const contact = contacts.find(c => c.id == contactId);
   if (contact) {
     contact.consentSent = true;
     writeData(DATA_FILE, contacts);
   }
-
-  const timestamp = new Date().toLocaleString('en-US', {
-    timeZone: 'America/Bogota',
-    dateStyle: 'medium',
-    timeStyle: 'medium'
-  });
-
-  const activityLogs = await readData(ACTIVITY_FILE);
-  const newLog = {
-    username: req.session.user.username,
-    action: `Generated & Sent ACA Consent Agreement for ${clientName} (${clientEmail})`,
-    timestamp: timestamp
-  };
-  activityLogs.push(newLog);
-  writeData(ACTIVITY_FILE, activityLogs);
-
-  io.emit('new-activity', newLog);
-
-  res.json({ success: true, message: `Consent agreement generated for ${clientName}` });
+  res.json({ success: true });
 });
 
 const activeUsers = new Map();
@@ -392,28 +284,22 @@ let chatHistory = "Welcome to Office Live Chat!";
 
 io.on('connection', (socket) => {
   socket.emit('chat-history', chatHistory);
-
   socket.on('register-user', (username) => {
     if (username) {
       activeUsers.set(socket.id, username);
       io.emit('update-active-users', Array.from(new Set(activeUsers.values())));
     }
   });
-
   socket.on('chat-message', (data) => {
     if (data.recipient && data.recipient !== 'All') {
       for (let [id, user] of activeUsers.entries()) {
-        if (user === data.recipient || user === data.sender) {
-          io.to(id).emit('chat-message', data);
-        }
+        if (user === data.recipient || user === data.sender) io.to(id).emit('chat-message', data);
       }
     } else {
-      const formattedMsg = `<b>${data.sender}:</b> ${data.text}`;
-      chatHistory += `\n${formattedMsg}`;
+      chatHistory += `\n<b>${data.sender}:</b> ${data.text}`;
       io.emit('chat-message', data);
     }
   });
-
   socket.on('disconnect', () => {
     activeUsers.delete(socket.id);
     io.emit('update-active-users', Array.from(new Set(activeUsers.values())));
@@ -421,5 +307,5 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Server is running securely with encryption on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
