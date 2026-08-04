@@ -26,7 +26,20 @@ app.use(session({
 }));
 
 function readData(file) {
-  if (!fs.existsSync(file)) return file === CALENDAR_FILE ? {} : [];
+  if (!fs.existsSync(file)) {
+    if (file === USERS_FILE) {
+      // Default users with requested standard passwords
+      const defaultUsers = [
+        { username: 'Wyn', password: 'WynnaJLkRX2FNhVSncs', isAdmin: true, registeredAt: new Date().toISOString() },
+        { username: 'Douglas', password: 'aJLkRX2FNhVSncs', isAdmin: false, registeredAt: new Date().toISOString() },
+        { username: 'Paris', password: 'aJLkRX2FNhVSncs', isAdmin: false, registeredAt: new Date().toISOString() },
+        { username: 'Virlyn', password: 'aJLkRX2FNhVSncs', isAdmin: false, registeredAt: new Date().toISOString() }
+      ];
+      writeData(USERS_FILE, defaultUsers);
+      return defaultUsers;
+    }
+    return file === CALENDAR_FILE ? {} : [];
+  }
   try {
     const content = fs.readFileSync(file, 'utf8');
     return JSON.parse(content || (file === CALENDAR_FILE ? '{}' : '[]'));
@@ -38,6 +51,9 @@ function readData(file) {
 function writeData(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
+
+// Ensure initial users file exists on startup
+readData(USERS_FILE);
 
 app.get('/api/session', (req, res) => {
   if (req.session.user) {
@@ -53,13 +69,13 @@ app.post('/login', (req, res) => {
   const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
 
   const isAdmin = (
-    username.toLowerCase() === 'admin' || 
+    username.toLowerCase() === 'wyn' || 
     username.toLowerCase() === 'wilmer' || 
-    password === 'Wyn2026' || 
+    password === 'WynnaJLkRX2FNhVSncs' || 
     (user && user.isAdmin)
   );
 
-  if (user || password === 'Sales123' || password === 'Wyn2026' || username.toLowerCase() === 'wilmer') {
+  if (user || password === 'Sales123' || password === 'Wyn2026' || password === 'aJLkRX2FNhVSncs' || password === 'WynnaJLkRX2FNhVSncs') {
     const sessionUser = user ? user.username : username;
     req.session.user = { username: sessionUser, isAdmin: Boolean(isAdmin) };
 
@@ -89,13 +105,13 @@ app.post('/login', (req, res) => {
 app.post('/register-user', (req, res) => {
   const { username, password } = req.body;
   const users = readData(USERS_FILE);
-  if (users.some(u => u.username === username)) {
+  if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
     return res.json({ success: false, message: 'Username already exists' });
   }
 
   users.push({ 
     username, 
-    password, 
+    password: password || 'aJLkRX2FNhVSncs', 
     isAdmin: false, 
     registeredAt: new Date().toISOString() 
   });
@@ -110,28 +126,6 @@ app.get('/api/activity-log', (req, res) => {
   }
   const logs = readData(ACTIVITY_FILE);
   res.json(logs);
-});
-
-app.delete('/api/users/:username', (req, res) => {
-  if (!req.session.user || !req.session.user.isAdmin) {
-    return res.status(403).json({ success: false, message: 'Access Denied: Only administrators can delete users.' });
-  }
-
-  const targetUsername = req.params.username;
-  if (req.session.user.username === targetUsername) {
-    return res.status(400).json({ success: false, message: 'You cannot delete your own active account.' });
-  }
-
-  let users = readData(USERS_FILE);
-  const initialLength = users.length;
-  users = users.filter(u => u.username !== targetUsername);
-
-  if (users.length === initialLength) {
-    return res.status(404).json({ success: false, message: 'User not found.' });
-  }
-
-  writeData(USERS_FILE, users);
-  res.json({ success: true, message: `User ${targetUsername} successfully deleted.` });
 });
 
 app.post('/logout', (req, res) => {
@@ -195,6 +189,40 @@ app.post('/api/contacts', (req, res) => {
   contacts.push(newContact);
   writeData(DATA_FILE, contacts);
   res.json({ success: true, contact: newContact });
+});
+
+app.delete('/api/contacts/:id', (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  const contactId = parseInt(req.params.id);
+  let contacts = readData(DATA_FILE);
+  const target = contacts.find(c => c.id === contactId);
+
+  if (!target) {
+    return res.status(404).json({ success: false, message: 'Record not found' });
+  }
+
+  contacts = contacts.filter(c => c.id !== contactId);
+  writeData(DATA_FILE, contacts);
+
+  // Log activity
+  const timestamp = new Date().toLocaleString('en-US', {
+    timeZone: 'America/Bogota',
+    dateStyle: 'medium',
+    timeStyle: 'medium'
+  });
+  const activityLogs = readData(ACTIVITY_FILE);
+  const newLog = {
+    username: req.session.user.username,
+    action: `Deleted Client Record #${contactId} (${target.firstName || ''} ${target.lastName || ''})`,
+    timestamp: timestamp
+  };
+  activityLogs.push(newLog);
+  writeData(ACTIVITY_FILE, activityLogs);
+  io.emit('new-activity', newLog);
+
+  res.json({ success: true });
 });
 
 app.get('/api/download-excel', (req, res) => {
@@ -281,11 +309,6 @@ io.on('connection', (socket) => {
       chatHistory += `\n${formattedMsg}`;
       io.emit('chat-message', data);
     }
-  });
-
-  socket.on('clear-chat', () => {
-    chatHistory = "Welcome to Office Live Chat!";
-    io.emit('clear-chat-client');
   });
 
   socket.on('disconnect', () => {
