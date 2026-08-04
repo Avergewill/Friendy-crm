@@ -20,7 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
 app.use(session({
-  secret: 'wyn-crm-secret-key',
+  secret: 'wynn-crm-secret-key',
   resave: false,
   saveUninitialized: false
 }));
@@ -30,9 +30,7 @@ function readData(file) {
     if (file === USERS_FILE) {
       const defaultUsers = [
         { username: 'Wyn', password: 'WynnaJLkRX2FNhVSncs', isAdmin: true, registeredAt: new Date().toISOString() },
-        { username: 'Douglas', password: 'aJLkRX2FNhVSncs', isAdmin: false, registeredAt: new Date().toISOString() },
-        { username: 'Paris', password: 'aJLkRX2FNhVSncs', isAdmin: false, registeredAt: new Date().toISOString() },
-        { username: 'Virlyn', password: 'aJLkRX2FNhVSncs', isAdmin: false, registeredAt: new Date().toISOString() }
+    
       ];
       writeData(USERS_FILE, defaultUsers);
       return defaultUsers;
@@ -73,7 +71,7 @@ app.post('/login', (req, res) => {
     (user && user.isAdmin)
   );
 
-  if (user || password === 'Sales123' || password === 'Wyn2026' || password === 'aJLkRX2FNhVSncs' || password === 'WynnaJLkRX2FNhVSncs') {
+  if (user || password === 'aJLkRX2FNhVSncs' || password === 'WynnaJLkRX2FNhVSncs') {
     const sessionUser = user ? user.username : username;
     req.session.user = { username: sessionUser, isAdmin: Boolean(isAdmin) };
 
