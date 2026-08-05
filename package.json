@@ -22,8 +22,8 @@
     "password": "aJLkRX2FNhVSnc3",
     "isAdmin": false,
     "registeredAt": "2026-08-01T00:00:00.000Z"
-  }
-   {
+  },
+  {
     "username": "JC",
     "password": "aJLkRX2FNhVSnc2",
     "isAdmin": false,
@@ -35,17 +35,16 @@
     "isAdmin": false,
     "registeredAt": "2026-08-01T00:00:00.000Z"
   },
-    {
-  "username": "Rodulfo",
-    "password": "WynnaJLkRX2FNhVSnc5",
-    "isAdmin": true,
-    "registeredAt": "2026-08-01T00:00:00.000Z"
- }, 
   {
-       "username": "George",
+    "username": "Rodulfo",
     "password": "WynnaJLkRX2FNhVSnc5",
     "isAdmin": true,
     "registeredAt": "2026-08-01T00:00:00.000Z"
- }
-  ]
-    
+  }, 
+  {
+    "username": "George",
+    "password": "WynnaJLkRX2FNhVSnc5",
+    "isAdmin": true,
+    "registeredAt": "2026-08-01T00:00:00.000Z"
+  }
+]
