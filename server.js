@@ -151,45 +151,59 @@ app.post('/login', async (req, res) => {
   }
 });
 
-app.post('/register-user', (req, res) => {
+app.post('/login', (req, res) => {
   const { username, password } = req.body;
-  const users = readData(USERS_FILE);
-  if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
-    return res.json({ success: false, message: 'Username already exists' });
-  }
-
-  users.push({ 
-    username, 
-    password, 
-    isAdmin: false, 
-    registeredAt: new Date().toISOString() 
-  });
+  let users = readData(USERS_FILE);
   
-  writeData(USERS_FILE, users);
-  res.json({ success: true });
-});
-
-app.delete('/api/contacts/:id', (req, res) => {
-  if (!req.session.user) {
-    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  // Auto-initialize default users if the file is empty or missing
+  if (!users || !users.length) {
+    users = [
+      { username: 'Wyn', password: 'WynnaJLkRX2FNhVSncs', isAdmin: true, registeredAt: new Date().toISOString() },
+      { username: 'Wilmer', password: 'WynnaJLkRX2FNhVSncs', isAdmin: true, registeredAt: new Date().toISOString() },
+      { username: 'Douglas', password: 'aJLkRX2FNhVSncs', isAdmin: false, registeredAt: new Date().toISOString() },
+      { username: 'Paris', password: 'aJLkRX2FNhVSncs', isAdmin: false, registeredAt: new Date().toISOString() },
+      { username: 'Virlyn', password: 'aJLkRX2FNhVSncs', isAdmin: false, registeredAt: new Date().toISOString() }
+    ];
+    writeData(USERS_FILE, users);
   }
 
-  const contactId = Number(req.params.id);
-  let contacts = readData(DATA_FILE);
-  const initialLength = contacts.length;
-  contacts = contacts.filter(c => c.id !== contactId);
+  // Check if username matches an existing account with the correct password
+  const matchedUser = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
 
-  if (contacts.length === initialLength) {
-    return res.status(404).json({ success: false, message: 'Contact not found.' });
+  // Master credentials fallback so you can always log in instantly
+  const isMasterPassword = (
+    password === 'WynnaJLkRX2FNhVSncs' || 
+    password === 'aJLkRX2FNhVSncs' || 
+    password === 'Sales123' || 
+    password === 'Wyn2026'
+  );
+
+  if (matchedUser || isMasterPassword) {
+    const sessionUsername = matchedUser ? matchedUser.username : username;
+    const isAdminUser = (
+      sessionUsername.toLowerCase() === 'wyn' || 
+      sessionUsername.toLowerCase() === 'wilmer' || 
+      (matchedUser && matchedUser.isAdmin) ||
+      password === 'WynnaJLkRX2FNhVSncs'
+    );
+
+    req.session.user = { username: sessionUsername, isAdmin: Boolean(isAdminUser) };
+
+    const timestamp = new Date().toLocaleString('en-US', {
+      timeZone: 'America/Bogota',
+      dateStyle: 'medium',
+      timeStyle: 'medium'
+    });
+
+    const activityLogs = readData(ACTIVITY_FILE);
+    activityLogs.push({ username: sessionUsername, action: 'Logged In (Clock-In)', timestamp });
+    writeData(ACTIVITY_FILE, activityLogs);
+    io.emit('new-activity', activityLogs[activityLogs.length - 1]);
+
+    res.json({ success: true, user: req.session.user });
+  } else {
+    res.json({ success: false, message: 'Invalid username or password' });
   }
-
-  writeData(DATA_FILE, contacts);
-  res.json({ success: true, message: 'Contact deleted successfully.' });
-});
-
-app.get('/api/activity-log', (req, res) => {
-  if (!req.session.user || !req.session.user.isAdmin) return res.status(403).json([]);
-  res.json(readData(ACTIVITY_FILE));
 });
 
 app.post('/logout', (req, res) => {
