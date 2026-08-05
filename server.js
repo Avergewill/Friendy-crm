@@ -151,18 +151,40 @@ app.post('/login', async (req, res) => {
   }
 });
 
-app.post('/register-user', async (req, res) => {
+app.post('/register-user', (req, res) => {
   const { username, password } = req.body;
   const users = readData(USERS_FILE);
   if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
     return res.json({ success: false, message: 'Username already exists' });
   }
 
-  const hashedPassword = await bcrypt.hash(password || 'aJLkRX2FNhVSncs', 10);
-  users.push({ username, password: hashedPassword, isAdmin: false, registeredAt: new Date().toISOString() });
+  users.push({ 
+    username, 
+    password, 
+    isAdmin: false, 
+    registeredAt: new Date().toISOString() 
+  });
   
   writeData(USERS_FILE, users);
   res.json({ success: true });
+});
+
+app.delete('/api/contacts/:id', (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+
+  const contactId = Number(req.params.id);
+  let contacts = readData(DATA_FILE);
+  const initialLength = contacts.length;
+  contacts = contacts.filter(c => c.id !== contactId);
+
+  if (contacts.length === initialLength) {
+    return res.status(404).json({ success: false, message: 'Contact not found.' });
+  }
+
+  writeData(DATA_FILE, contacts);
+  res.json({ success: true, message: 'Contact deleted successfully.' });
 });
 
 app.get('/api/activity-log', (req, res) => {
