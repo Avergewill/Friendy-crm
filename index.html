@@ -547,30 +547,6 @@
       border-radius: 6px;
       cursor: pointer;
     }
-
-    /* Print styling to format consent form text clean for printers and PDF export */
-    @media print {
-      body * {
-        visibility: hidden;
-      }
-      #consentPrintArea, #consentPrintArea * {
-        visibility: visible;
-      }
-      #consentPrintArea {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        margin: 0;
-        padding: 20px;
-        background: white;
-        box-shadow: none;
-        border: none;
-      }
-      .no-print {
-        display: none !important;
-      }
-    }
   </style>
 </head>
 
@@ -659,26 +635,24 @@
                 <input type="text" id="lastName" placeholder="Last name">
               </div>
               <div>
-                <label>DOB</label>
-                <input type="date" id="dob">
-              </div>
-            </div>
-
-            <!-- Phone and Email combined in the same row -->
-            <div class="form-grid" style="margin-top: 15px;">
-              <div>
                 <label>Phone Number *</label>
                 <input type="tel" id="phone" placeholder="+1 (555) 000-0000">
               </div>
-              <div style="grid-column: span 2;">
+            </div>
+
+            <div class="form-grid" style="margin-top: 15px;">
+              <div>
+                <label for="dob">DOB</label>
+                <input type="date" id="dob">
+              </div>
+              <div>
                 <label for="email">Email Address</label>
                 <input type="email" id="email" placeholder="client@email.com">
               </div>
-            </div>
-
-            <div style="margin-top: 15px;">
-              <label for="address">Address / Zip Code</label>
-              <input type="text" id="address" placeholder="Street, City, State, Zip">
+              <div>
+                <label for="address">Address / Zip Code</label>
+                <input type="text" id="address" placeholder="Street, City, State, Zip">
+              </div>
             </div>
 
             <div style="margin-top: 15px;">
@@ -844,7 +818,6 @@
               <th>Date</th>
               <th>Notes & Reminders</th>
               <th>Agent</th>
-              <th>Action</th>
             </tr>
           </thead>
           <tbody id="bensonTableBody"></tbody>
@@ -869,7 +842,7 @@
     <div class="chat-popup-header">
       <span>Office Live Chat</span>
       <div style="display: flex; gap: 10px; align-items: center;">
-        <button type="button" onclick="clearMyChat()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 11px;">Clear Chat</button>
+        <button type="button" onclick="clearChatRoom()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 11px;">Clear Chat</button>
         <span onclick="toggleChatPopup()">✕</span>
       </div>
     </div>
@@ -1342,30 +1315,6 @@
         });
     }
 
-    function deleteClient(id, clientName) {
-      const confirmFirst = confirm(`⚠️ Are you sure you want to delete client record #${id} (${clientName})?`);
-      if (!confirmFirst) return;
-
-      const confirmSecond = confirm(`🛑 FINAL WARNING: This will permanently delete client record #${id}. Click OK to confirm deletion.`);
-      if (!confirmSecond) return;
-
-      fetch(`/api/contacts/${id}`, {
-        method: 'DELETE'
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          loadContacts();
-        } else {
-          alert(data.message || 'Failed to delete client record.');
-        }
-      })
-      .catch(err => {
-        console.error('Error deleting client:', err);
-        alert('An error occurred while deleting the client record.');
-      });
-    }
-
     function renderTables(contacts) {
       const bensonBody = document.getElementById('bensonTableBody');
       const acaBody = document.getElementById('clientTableBody');
@@ -1391,12 +1340,7 @@
             <td>${c.dob}</td>
             <td>${c.moreDetails}</td>
             <td>${c.user}</td>
-            <td>
-              <button onclick="deleteClient('${c.id}', '${c.firstName} ${c.lastName}')" 
-                      style="background-color: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold;">
-                🗑️ Delete
-              </button>
-            </td>
+            <td><button onclick="deleteContact(${c.id})" style="background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;">Delete</button></td>
           `;
           bensonBody.appendChild(row);
         } else {
@@ -1417,21 +1361,33 @@
             <td>${c.user}</td>
             <td style="text-align: center;">${consentStatusBadge}</td>
             <td>
-              <div style="display: flex; gap: 6px; align-items: center;">
+              <div style="display:flex; gap:6px;">
                 <button onclick="triggerACAConsent('${c.id}', '${c.firstName || ''} ${c.lastName || ''}', '${c.email || ''}', '${c.dob || ''}', '${c.healthPlan || 'Selected Plan'}', '${c.insuranceLevel || 'Standard'}')" 
                         style="background-color: #2563eb; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold;">
                   Consent
                 </button>
-                <button onclick="deleteClient('${c.id}', '${c.firstName || ''} ${c.lastName || ''}')" 
-                        style="background-color: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold;">
-                  🗑️
-                </button>
+                <button onclick="deleteContact(${c.id})" style="background:#ef4444; color:white; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; font-size:11px;">Delete</button>
               </div>
             </td>
           `;
           acaBody.appendChild(row);
         }
       });
+    }
+
+    function deleteContact(contactId) {
+      if (!confirm("Are you sure you want to delete this client record?")) return;
+
+      fetch(`/api/contacts/${contactId}`, { method: 'DELETE' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            loadContacts();
+          } else {
+            alert(data.message || 'Failed to delete contact.');
+          }
+        })
+        .catch(err => console.error('Error deleting contact:', err));
     }
 
     function openTopConsentGenerator() {
@@ -1450,15 +1406,9 @@
 
     function triggerACAConsent(contactId, clientName, clientEmail, clientDob, carrier, level) {
       if (!clientEmail || clientEmail === 'client@email.com' || clientEmail.trim() === '') {
-        alert('⚠️ Please update the client email address before sending the consent form.');
+        alert('⚠️ Please update the client email address before generating the consent form.');
         return;
       }
-
-      const confirmed = confirm(
-        `Confirm Consent Agreement\n\nClient: ${clientName}\nDOB: ${clientDob}\nEmail: ${clientEmail}\nPlan: ${carrier} (${level})\n\nClick OK to generate and display the consent agreement.`
-      );
-
-      if (!confirmed) return;
 
       generateAndSendConsent(contactId, clientName, clientEmail, clientDob, carrier, level);
     }
@@ -1517,59 +1467,49 @@ If you decide to work with another agent in the future, please contact Douglas W
       }
 
       modal.innerHTML = `
-        <div style="background:white; width:750px; max-height:85vh; padding:30px; border-radius:12px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.2); display:flex; flex-direction:column;">
+        <div style="background:white; width:750px; max-height:90vh; padding:30px; border-radius:12px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.2); display:flex; flex-direction:column; overflow-y:auto;">
           <h2 style="margin-top:0; color:#2563eb; border-bottom:2px solid #e2e8f0; padding-bottom:10px;">ACA Health Insurance Consent Agreement</h2>
+          <p style="margin:5px 0 15px 0; font-size:13px; color:#64748b;"><b>Client:</b> ${clientName} | <b>Email:</b> ${clientEmail}</p>
           
-        /* Print styling to format consent form text clean for one single page */
-    @media print {
-      body * {
-        visibility: hidden;
-      }
-      #consentModal, #consentModal * {
-        visibility: visible;
-      }
-      #consentModal {
-        position: fixed;
-        left: 0;
-        top: 0;
-        width: 100vw;
-        height: 100vh;
-        background: white !important;
-        display: flex !important;
-        justify-content: center;
-        align-items: flex-start;
-        padding: 0;
-        margin: 0;
-        box-shadow: none;
-        z-index: 99999;
-      }
-      #consentModal > div {
-        width: 100% !important;
-        max-width: 100% !important;
-        height: 100vh !important;
-        max-height: 100vh !important;
-        border: none !important;
-        box-shadow: none !important;
-        padding: 10px 20px !important;
-      }
-      #consentPrintArea {
-        max-height: none !important;
-        overflow: visible !important;
-      }
-      #consentPrintArea div {
-        font-size: 11px !important;
-        line-height: 1.35 !important;
-        padding: 10px !important;
-        background: white !important;
-        border: 1px solid #94a3b8 !important;
-      }
-      .no-print {
-        display: none !important;
-      }
-      @page {
-        size: portrait;
-        margin: 0.5in;
-      }
+          <div id="consentTextContent" style="width:100%; min-height:300px; padding:15px; font-family:Arial, sans-serif; font-size:13px; line-height:1.5; border:1px solid #cbd5e1; border-radius:6px; background:#f8fafc; white-space:pre-wrap; box-sizing:border-box; color:#1e293b;">${completedConsentBody}</div>
+          
+          <div style="margin-top:20px; display:flex; justify-content:space-between; align-items:center;">
+            <span id="copyStatus" style="color:#059669; font-weight:bold; font-size:13px;"></span>
+            <div style="display:flex; gap:10px;">
+              <button onclick="navigator.clipboard.writeText(document.getElementById('consentTextContent').innerText).then(() => document.getElementById('copyStatus').textContent = '✅ Copied text for Gmail!')" style="background:#059669; color:white; border:none; padding:10px 18px; border-radius:6px; cursor:pointer; font-weight:bold;">📋 Copy Text</button>
+              <button onclick="printConsentPDF()" style="background:#2563eb; color:white; border:none; padding:10px 18px; border-radius:6px; cursor:pointer; font-weight:bold;">🖨️ Print / Save as PDF</button>
+              <button onclick="document.getElementById('consentModal').remove()" style="background:#64748b; color:white; border:none; padding:10px 18px; border-radius:6px; cursor:pointer; font-weight:bold;">✕ Close</button>
+            </div>
+          </div>
+        </div>
+      `;
+      modal.style.display = 'flex';
+    }
+
+    function printConsentPDF() {
+      const content = document.getElementById('consentTextContent').innerText;
+      const printWin = window.open('', '_blank', 'width=800,height=800');
+      printWin.document.write(`
+        <html>
+          <head>
+            <title>ACA Consent Agreement</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 40px; color: #000; line-height: 1.6; font-size: 14px; }
+              pre { white-space: pre-wrap; font-family: inherit; }
+            </style>
+          </head>
+          <body>
+            <pre>${content}</pre>
+            <script>
+              window.onload = function() {
+                window.print();
+                window.close();
+              }
+            </script>
+          </body>
+        </html>
+      `);
+      printWin.document.close();
     }
 
     function filterBensonTable() {
@@ -1649,9 +1589,15 @@ If you decide to work with another agent in the future, please contact Douglas W
       }
     }
 
-    function clearMyChat() {
-      document.getElementById('chatLog').innerHTML = `<div class="chat-msg"><i>[Chat cleared locally for your screen]</i></div>`;
+    function clearChatRoom() {
+      if (confirm('Are you sure you want to clear the office chat history?')) {
+        socket.emit('clear-chat');
+      }
     }
+
+    socket.on('clear-chat-client', () => {
+      document.getElementById('chatLog').innerHTML = `<div class="chat-msg"><i>Welcome to Office Live Chat!</i></div>`;
+    });
   </script>
 
 </body>
