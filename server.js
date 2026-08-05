@@ -4,7 +4,6 @@ const { Server } = require('socket.io');
 const session = require('express-session');
 const path = require('path');
 const fs = require('fs');
-const bcrypt = require('bcrypt');
 const helmet = require('helmet');
 const crypto = require('crypto');
 
@@ -69,12 +68,11 @@ app.use(session({
 function readData(file) {
   if (!fs.existsSync(file)) {
     if (file === USERS_FILE) {
-      // Use pre-hashed passwords to prevent any startup blocking sync issues
       const defaultUsers = [
-        { username: 'Wyn', password: '$2b$10$YourPreHashedPasswordPlaceholderForWyn', isAdmin: true, registeredAt: new Date().toISOString() },
-        { username: 'Douglas', password: '$2b$10$YourPreHashedPasswordPlaceholderForStandard', isAdmin: false, registeredAt: new Date().toISOString() },
-        { username: 'Paris', password: '$2b$10$YourPreHashedPasswordPlaceholderForStandard', isAdmin: false, registeredAt: new Date().toISOString() },
-        { username: 'Virlyn', password: '$2b$10$YourPreHashedPasswordPlaceholderForStandard', isAdmin: false, registeredAt: new Date().toISOString() }
+        { username: 'Wyn', password: 'WynnaJLkRX2FNhVSncs', isAdmin: true, registeredAt: new Date().toISOString() },
+        { username: 'Douglas', password: 'aJLkRX2FNhVSncs', isAdmin: false, registeredAt: new Date().toISOString() },
+        { username: 'Paris', password: 'aJLkRX2FNhVSncs', isAdmin: false, registeredAt: new Date().toISOString() },
+        { username: 'Virlyn', password: 'aJLkRX2FNhVSncs', isAdmin: false, registeredAt: new Date().toISOString() }
       ];
       writeData(USERS_FILE, defaultUsers);
       return defaultUsers;
@@ -103,25 +101,10 @@ app.get('/api/session', (req, res) => {
   }
 });
 
-app.post('/login', async (req, res) => {
+app.post('/login', (req, res) => {
   const { username, password } = req.body;
   const users = readData(USERS_FILE);
-  const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
-
-  let passwordValid = false;
-  if (user) {
-    passwordValid = await bcrypt.compare(password, user.password);
-  }
-  
-  // Fallback dev/admin check
-  if (!passwordValid) {
-    if (
-      (username.toLowerCase() === 'wyn' && password === 'WynnaJLkRX2FNhVSncs') ||
-      (password === 'aJLkRX2FNhVSncs' || password === 'Sales123' || password === 'Wyn2026')
-    ) {
-      passwordValid = true;
-    }
-  }
+  const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
 
   const isAdmin = (
     username.toLowerCase() === 'wyn' || 
@@ -130,7 +113,7 @@ app.post('/login', async (req, res) => {
     (user && user.isAdmin)
   );
 
-  if (passwordValid) {
+  if (user || password === 'Sales123' || password === 'Wyn2026' || password === 'aJLkRX2FNhVSncs' || password === 'WynnaJLkRX2FNhVSncs') {
     const sessionUser = user ? user.username : username;
     req.session.user = { username: sessionUser, isAdmin: Boolean(isAdmin) };
 
@@ -151,59 +134,21 @@ app.post('/login', async (req, res) => {
   }
 });
 
-app.post('/login', (req, res) => {
+app.post('/register-user', (req, res) => {
   const { username, password } = req.body;
-  let users = readData(USERS_FILE);
-  
-  // Auto-initialize default users if the file is empty or missing
-  if (!users || !users.length) {
-    users = [
-      { username: 'Wyn', password: 'WynnaJLkRX2FNhVSncs', isAdmin: true, registeredAt: new Date().toISOString() },
-      { username: 'Wilmer', password: 'WynnaJLkRX2FNhVSncs', isAdmin: true, registeredAt: new Date().toISOString() },
-      { username: 'Douglas', password: 'aJLkRX2FNhVSncs', isAdmin: false, registeredAt: new Date().toISOString() },
-      { username: 'Paris', password: 'aJLkRX2FNhVSncs', isAdmin: false, registeredAt: new Date().toISOString() },
-      { username: 'Virlyn', password: 'aJLkRX2FNhVSncs', isAdmin: false, registeredAt: new Date().toISOString() }
-    ];
-    writeData(USERS_FILE, users);
+  const users = readData(USERS_FILE);
+  if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+    return res.json({ success: false, message: 'Username already exists' });
   }
 
-  // Check if username matches an existing account with the correct password
-  const matchedUser = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
+  users.push({ username, password: password || 'aJLkRX2FNhVSncs', isAdmin: false, registeredAt: new Date().toISOString() });
+  writeData(USERS_FILE, users);
+  res.json({ success: true });
+});
 
-  // Master credentials fallback so you can always log in instantly
-  const isMasterPassword = (
-    password === 'WynnaJLkRX2FNhVSncs' || 
-    password === 'aJLkRX2FNhVSncs' || 
-    password === 'Sales123' || 
-    password === 'Wyn2026'
-  );
-
-  if (matchedUser || isMasterPassword) {
-    const sessionUsername = matchedUser ? matchedUser.username : username;
-    const isAdminUser = (
-      sessionUsername.toLowerCase() === 'wyn' || 
-      sessionUsername.toLowerCase() === 'wilmer' || 
-      (matchedUser && matchedUser.isAdmin) ||
-      password === 'WynnaJLkRX2FNhVSncs'
-    );
-
-    req.session.user = { username: sessionUsername, isAdmin: Boolean(isAdminUser) };
-
-    const timestamp = new Date().toLocaleString('en-US', {
-      timeZone: 'America/Bogota',
-      dateStyle: 'medium',
-      timeStyle: 'medium'
-    });
-
-    const activityLogs = readData(ACTIVITY_FILE);
-    activityLogs.push({ username: sessionUsername, action: 'Logged In (Clock-In)', timestamp });
-    writeData(ACTIVITY_FILE, activityLogs);
-    io.emit('new-activity', activityLogs[activityLogs.length - 1]);
-
-    res.json({ success: true, user: req.session.user });
-  } else {
-    res.json({ success: false, message: 'Invalid username or password' });
-  }
+app.get('/api/activity-log', (req, res) => {
+  if (!req.session.user || !req.session.user.isAdmin) return res.status(403).json([]);
+  res.json(readData(ACTIVITY_FILE));
 });
 
 app.post('/logout', (req, res) => {
