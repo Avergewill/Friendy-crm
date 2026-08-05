@@ -1,16 +1,52 @@
-{
-  "name": "wynn-crm",
-  "version": "1.0.0",
-  "description": "Wyn CRM Dashboard",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
+[
+  {
+    "username": "Wilmer",
+    "password": "WynnaJLkRX2FNhVSnc5",
+    "isAdmin": true,
+    "registeredAt": "2026-08-01T00:00:00.000Z"
   },
-  "dependencies": {
-    "bcrypt": "^5.1.1",
-    "express": "^4.19.2",
-    "express-session": "^1.18.0",
-    "helmet": "^7.1.0",
-    "socket.io": "^4.7.5"
+  {
+    "username": "Douglas",
+    "password": "aJLkRX2FNhVSncs0",
+    "isAdmin": false,
+    "registeredAt": "2026-08-01T00:00:00.000Z"
+  },
+  {
+    "username": "Michael",
+    "password": "aJLkRX2FNhVSnc4",
+    "isAdmin": false,
+    "registeredAt": "2026-08-01T00:00:00.000Z"
+  },
+  {
+    "username": "Santiago",
+    "password": "aJLkRX2FNhVSnc3",
+    "isAdmin": false,
+    "registeredAt": "2026-08-01T00:00:00.000Z"
   }
-}
+   {
+    "username": "JC",
+    "password": "aJLkRX2FNhVSnc2",
+    "isAdmin": false,
+    "registeredAt": "2026-08-01T00:00:00.000Z"
+  }, 
+  {
+    "username": "John",
+    "password": "aJLkRX2FNhVSnc1",
+    "isAdmin": false,
+    "registeredAt": "2026-08-01T00:00:00.000Z"
+  },
+    {
+  "username": "Rodulfo",
+    "password": "WynnaJLkRX2FNhVSnc5",
+    "isAdmin": true,
+    "registeredAt": "2026-08-01T00:00:00.000Z"
+ }, 
+  {
+       "username": "George",
+    "password": "WynnaJLkRX2FNhVSnc5",
+    "isAdmin": true,
+    "registeredAt": "2026-08-01T00:00:00.000Z"
+ }
+  
+
+    
